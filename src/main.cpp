@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <chrono>
 #include <memory>
-#include "Board/Element.hpp"
+#include "Game/Element.hpp"
 #include "GFX/Animation.hpp"
 #include "GFX/SDL_FontCache.h"
 #include "Menu/Lang.hpp"
@@ -212,7 +212,7 @@ int main(void)
 			float textWidth = FC_GetWidth(font, d->name.c_str());
 			float textHeight = FC_GetHeight(font, d->name.c_str());
 			FC_DrawScale(font, ren,
-				(d->box->x + (d->box->w - textWidth)/2) + (textWidth - textWidth * d->scale), //Text X position
+				(d->box->x + (d->box->w - textWidth)/2) + (textWidth - textWidth * d->scale)/2, //Text X position
 				(d->box->y + d->box->w) + (textHeight - textHeight * d->scale), //Text Y position
 				{d->scale, d->scale}, d->name.c_str());
 		}

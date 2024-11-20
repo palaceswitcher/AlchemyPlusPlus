@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "SDL_FontCache.h"
-#include "../Board/Sprite.hpp"
-#include "../Board/Element.hpp"
+#include "../Game/Sprite.hpp"
+#include "../Game/Element.hpp"
 #ifndef ANIMATION_HPP_ //Include guard
 #define ANIMATION_HPP_
 

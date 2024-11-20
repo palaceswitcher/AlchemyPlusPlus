@@ -5,8 +5,8 @@
 #include <string>
 #include <iostream>
 #include <vector>
-#include "../Board/Sprite.hpp"
-#include "../Board/Element.hpp"
+#include "../Game/Sprite.hpp"
+#include "../Game/Element.hpp"
 #include "SDL_FontCache.h"
 #include "Animation.hpp"
 
@@ -23,7 +23,6 @@ namespace anim {
 		}
 	}
 	void adjustElementLabelPosition(DraggableElement* element, FC_Font* font) {
-		//d->box->x+(d->box->w - FC_GetWidth(font, d->name.c_str()))/2, d->box->y+32, FC_MakeScale(d->scale, d->scale)
 		float origW = FC_GetWidth(font, element->name.c_str());
 		float origH = FC_GetHeight(font, element->name.c_str());
 		if (element->box->h % 2 == 0 && element->box->w % 2 == 0) {
@@ -43,7 +42,7 @@ namespace anim {
 	}
 	// Performs the grow animation for a sprite. Is run every frame
 	void animateGrow(Sprite* spr, double deltaTime) {
-		double scaleAmount = 1 * deltaTime / 1000; //Animation should take 200ms
+		double scaleAmount = 4 * deltaTime / 1000; //Animation should take 200ms
 		if (spr->scale < 1.0) {
 			spr->scale += scaleAmount;
 			applyScale(spr);

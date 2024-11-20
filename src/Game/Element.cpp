@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <memory>
+#include <cmath>
 #include "Element.hpp"
 #include "Sprite.hpp"
 #include "../GFX/Animation.hpp"
@@ -17,7 +18,6 @@
 #include "../Misc/IO.hpp"
 #include "../Menu/Lang.hpp"
 
-bool compareZIndex(std::unique_ptr<DraggableElement> d1, std::unique_ptr<DraggableElement> d2) { return d1->z > d2->z; }
 bool compareZIndexRaw(DraggableElement* d1, DraggableElement* d2) { return d1->z > d2->z; } //Z-index comparison for raw pointers
 
 // Constructor
@@ -43,6 +43,10 @@ DraggableElement::DraggableElement(std::string elemID, int mX, int mY) {
 	anim::animInProgress = true; //Start animations
 }
 
+DraggableElement::~DraggableElement() {
+	free(this->box);
+}
+
 // Checks if two elements are colliding and combines them if possible
 void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> &draggables, std::vector<std::string> &elementsUnlocked) {
 	elem::firstParentElem = this;
@@ -53,7 +57,6 @@ void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> 
 	cJSON* elemJSON = cJSON_GetObjectItem(elem::root, this->id.c_str());
 	cJSON* elemCombos = cJSON_GetObjectItem(elemJSON, "combos"); //Get combinations for first selected element
 	if (elemCombos == NULL) { return; }
-	int startX = this->box->x;
 	int startY = this->box->y;
 
 	std::vector<DraggableElement*> collidedElements; //A list of every element this could match with
@@ -89,8 +92,12 @@ void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> 
 
 		//Position new elements on-screen
 		for (int i = 0; i < numResults; i++) {
-			int newX = ((startX + matchingElem->box->x) / (numResults+1)) * (i+1) - ELEM_SIZE/2;
-			int newY = (startY + matchingElem->box->y) / 2 - ELEM_SIZE/2; //Position new elements between new elements
+			int lowerElemXPos = this->box->x;
+			int lowerElemYPos = this->box->y;
+			if (this->box->x > matchingElem->box->x) lowerElemXPos = matchingElem->box->x;
+			if (this->box->y > matchingElem->box->y) lowerElemYPos = matchingElem->box->y; //Offset by the elements with the lower X and Y positions
+			int newX = lowerElemXPos + ((i+1) * (this->box->x - matchingElem->box->x) / (numResults+1));
+			int newY = lowerElemYPos + ((i+1) * (this->box->y - matchingElem->box->y) / (numResults+1)); //Position new elements between new elements
 			elem::spawnDraggable(draggables, newX, newY, newElemNames[i]); //Add elements to screen
 		}
 

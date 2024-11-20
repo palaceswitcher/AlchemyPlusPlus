@@ -18,20 +18,20 @@
 
 class DraggableElement : public Sprite {
 public:
+	DraggableElement() : Sprite({NULL, NULL, 0, 1.0}) {};
+	DraggableElement(std::string elemID, int mX, int mY);
+	~DraggableElement();
 	std::string id;
 	std::string name; //Displayed name of the element
 	int z = 0; //Z-index
-	DraggableElement() : Sprite({NULL, NULL, 0, 1.0}) {};
 	float fontX;
 	float fontY;
 	bool queuedForDeletion = false;
 
 	void makeCombo(std::vector<std::unique_ptr<DraggableElement>> &draggables, std::vector<std::string> &elementsUnlocked);
 	static void deleteElem(std::vector<std::unique_ptr<DraggableElement>> &draggables, DraggableElement* elem);
-	DraggableElement(std::string elemID, int mX, int mY);
 };
 
-bool compareZIndex(std::unique_ptr<DraggableElement> d1, std::unique_ptr<DraggableElement> d2);
 bool compareZIndexRaw(DraggableElement* d1, DraggableElement* d2);
 
 namespace elem {
