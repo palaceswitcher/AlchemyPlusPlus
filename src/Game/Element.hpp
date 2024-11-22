@@ -1,6 +1,3 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <vector>
@@ -24,8 +21,6 @@ public:
 	std::string id;
 	std::string name; //Displayed name of the element
 	int z = 0; //Z-index
-	float fontX;
-	float fontY;
 	bool queuedForDeletion = false;
 
 	void makeCombo(std::vector<std::unique_ptr<DraggableElement>> &draggables, std::vector<std::string> &elementsUnlocked);

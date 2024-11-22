@@ -175,11 +175,9 @@ int main(void)
 			for (auto &d : draggables) {
 				if (d->anim == ANIM_SHRINK) {
 					anim::animateShrink(d.get(), deltaTime);
-					//anim::adjustElementLabelPosition(d, font);
 					animDone = true;
 				} else if (d->anim == ANIM_GROW) {
 					anim::animateGrow(d.get(), deltaTime);
-					//anim::adjustElementLabelPosition(d, font);
 					animDone = true;
 				}
 				anim::animInProgress = animDone; //Stop animations if none are running
@@ -211,7 +209,13 @@ int main(void)
 
 		// Render every draggable element
 		for (auto const& d : draggables) {
-			SDL_RenderCopy(ren, d->texture, NULL, d->box);
+			if ((int)d->scale != 1) {
+				SDL_Rect* scaledRect = anim::applyScale(d.get()); //Get scaled rect
+				SDL_RenderCopy(ren, d->texture, NULL, scaledRect);
+				free(scaledRect); //Free it to avoid leak
+			} else {
+				SDL_RenderCopy(ren, d->texture, NULL, d->box);
+			}
 
 			float textWidth = FC_GetWidth(font, d->name.c_str());
 			float textHeight = FC_GetHeight(font, d->name.c_str());

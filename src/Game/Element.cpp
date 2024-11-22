@@ -37,8 +37,6 @@ DraggableElement::DraggableElement(std::string elemID, int mX, int mY) {
 	scale = 0.0;
 	anim = ANIM_GROW; //Make element grow on spawn
 	name = Text::getElemName(elemID);
-	fontX = mX+(box->w - FC_GetWidth(font, name.c_str()))/2;
-	fontY = mY+box->h; //Init font position
 
 	anim::animInProgress = true; //Start animations
 }

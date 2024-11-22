@@ -1,6 +1,4 @@
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include "SDL_FontCache.h"
@@ -21,8 +19,7 @@ enum ObjectAnimationType {
 
 namespace anim {
 	extern bool animInProgress;
-	void applyScale(Sprite* spr);
-	void adjustElementLabelPosition(DraggableElement* element, FC_Font* font);
+	SDL_Rect* applyScale(Sprite* spr);
 	void animateShrink(Sprite* spr, double deltaTime);
 	void animateGrow(Sprite* spr, double deltaTime);
 }
