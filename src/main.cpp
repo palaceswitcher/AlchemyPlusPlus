@@ -1,3 +1,4 @@
+#define SDL2_MAIN_HANDLED
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
@@ -29,7 +30,7 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 	// Initialize window
-	SDL_Window* win = SDL_CreateWindow("Xreation pre-alpha v0.2", 0, 0, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
+	SDL_Window* win = SDL_CreateWindow("Alchemy++ alpha v0.1", 0, 0, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
 	if (win == NULL) {
 		fprintf(stderr, "SDL_CreateWindow Error: %s\n", SDL_GetError());
 		return EXIT_FAILURE;
@@ -40,7 +41,7 @@ int main(void)
 		}
 	}
 
-	SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+	SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
 	if (ren == NULL) {
 		fprintf(stderr, "SDL_CreateRenderer Error: %s\n", SDL_GetError());
 		if (win != NULL) {
@@ -83,6 +84,7 @@ int main(void)
 
 	auto endTick = Clock::now();
 	double deltaTime = 1.0/60;
+	bool zSortNeeded = false; //Used to indicate if elements need to be sorted
 	bool quit = false; //Main loop exit flag
 	while (!quit) {
 		SDL_GetWindowSize(win, &winWidth, &winHeight); //Get screen size
@@ -112,11 +114,11 @@ int main(void)
 							selectedElem->makeCombo(draggables, elementsUnlocked); //See if combination was made with another element
 						}
 						selectedElem = NULL; //Release selected rectangle when left is released
+						zSortNeeded = true; //Re-sort Z-index after element was dropped
 					}
 					if (rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
 						rightClickDown = false;
 					}
-
 					break;
 				case SDL_MOUSEBUTTONDOWN:
 					if (!leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
@@ -130,6 +132,7 @@ int main(void)
 								}
 							}
 							if (!clickMatches.empty()) {
+								zSortNeeded = true; //Z-index will need to be resorted as this element will be moved to the front
 								std::stable_sort(clickMatches.begin(), clickMatches.end(), compareZIndexRaw); //Sort matching elements by Z-index, with the highest coming last
 
 								selectedElem = clickMatches.back(); //Select rectangle with highest Z-index
@@ -160,13 +163,14 @@ int main(void)
 			}
 		}
 		// Sort draggable elements by z index when animations finish
-		if (!anim::animInProgress) {
+		if (zSortNeeded && !anim::animInProgress) {
 			std::stable_sort(draggables.begin(), draggables.end(), [](const std::unique_ptr<DraggableElement> &d1, const std::unique_ptr<DraggableElement> &d2) {
 				return d1->z > d2->z;
 			});
+			zSortNeeded = false;
 		}
 		// Apply animations
-		else {
+		if (anim::animInProgress) {
 			bool animDone = false;
 			for (auto &d : draggables) {
 				if (d->anim == ANIM_SHRINK) {
@@ -201,7 +205,7 @@ int main(void)
 		SDL_RenderCopy(ren, addBtn, NULL, &r); //Render add button
 
 		//Render text
-		FC_Draw(font, ren, 0, 0, "Xreation pre-alpha v0.2");
+		FC_Draw(font, ren, 0, 0, "Alchemy++ alpha v0.1");
 
 		FC_Draw(font, ren, 20, winHeight-20, "elems: %d", draggables.size());
 
@@ -216,6 +220,8 @@ int main(void)
 				(d->box->y + d->box->w) + (textHeight - textHeight * d->scale), //Text Y position
 				{d->scale, d->scale}, d->name.c_str());
 		}
+
+		FC_Draw(font, ren, winWidth-200, 10, "FPS: %f", 1000/deltaTime);
 
 		SDL_RenderPresent(ren);
 		endTick = Clock::now();

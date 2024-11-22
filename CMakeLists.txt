@@ -6,10 +6,10 @@ option(MYGAME_VENDORED "Use vendored libraries" OFF)
 
 #build settings
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_BUILD_TYPE Release)
 endif()
 #set(CMAKE_DEBUG_POSTFIX d)
-#set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 if(MYGAME_VENDORED)
     add_subdirectory(vendored/sdl EXCLUDE_FROM_ALL)
@@ -32,11 +32,16 @@ add_subdirectory(src/GFX)
 include_directories(src/GFX)
 add_subdirectory(src/Game)
 include_directories(src/Game)
-add_subdirectory(src/Menu)
-include_directories(src/Menu)
 add_subdirectory(src/Misc)
 include_directories(src/Misc)
+add_subdirectory(src/Menu)
+include_directories(src/Menu)
 add_executable(AlchemyPlusPlus src/main.cpp) #Main file
+
+if(WIN32)
+    target_link_options(AlchemyPlusPlus PRIVATE "-mwindows") #Disable console pop-up
+    target_link_options(AlchemyPlusPlus PRIVATE -static-libgcc -static-libstdc++) #Statically compile standard library
+endif(WIN32)
 
 # SDL2::SDL2main may or may not be available. It is e.g. required by Windows GUI applications
 if(TARGET SDL2::SDL2main)
@@ -46,8 +51,8 @@ endif()
 target_link_libraries (AlchemyPlusPlus JSON)
 target_link_libraries (AlchemyPlusPlus GFX)
 target_link_libraries (AlchemyPlusPlus Game)
-target_link_libraries (AlchemyPlusPlus Menu)
 target_link_libraries (AlchemyPlusPlus Misc)
+target_link_libraries (AlchemyPlusPlus Menu)
 
 # Link to the actual SDL2 library. SDL2::SDL2 is the shared SDL library, SDL2::SDL2-static is the static SDL libarary.
 target_link_libraries(AlchemyPlusPlus SDL2::SDL2 SDL2_image::SDL2_image)
