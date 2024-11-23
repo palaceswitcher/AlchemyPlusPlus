@@ -19,7 +19,7 @@
 #include "Menu/Lang.hpp"
 typedef std::chrono::high_resolution_clock Clock;
 
-int main(void)
+int main(int argc, char* argv[])
 {
 	std::vector<std::string> elemsUnlocked = {"air", "earth", "fire", "water"};
 	elem::JSONInit(); //Initialize JSON
@@ -30,7 +30,7 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 	// Initialize window
-	SDL_Window* win = SDL_CreateWindow("Alchemy++ alpha v0.1.1", 0, 0, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
+	SDL_Window* win = SDL_CreateWindow("Alchemy++ alpha v0.1.2", 64, 64, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
 	if (win == NULL) {
 		fprintf(stderr, "SDL_CreateWindow Error: %s\n", SDL_GetError());
 		return EXIT_FAILURE;
@@ -41,7 +41,7 @@ int main(void)
 		}
 	}
 
-	SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
+	SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
 	if (ren == NULL) {
 		fprintf(stderr, "SDL_CreateRenderer Error: %s\n", SDL_GetError());
 		if (win != NULL) {
@@ -203,7 +203,7 @@ int main(void)
 		SDL_RenderCopy(ren, addBtn, NULL, &r); //Render add button
 
 		//Render text
-		FC_Draw(font, ren, 0, 0, "Alchemy++ alpha v0.1.1");
+		FC_Draw(font, ren, 0, 0, "Alchemy++ alpha v0.1.2");
 
 		FC_Draw(font, ren, 20, winHeight-20, "elems: %d", draggables.size());
 
