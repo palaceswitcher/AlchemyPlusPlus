@@ -30,7 +30,7 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 	// Initialize window
-	SDL_Window* win = SDL_CreateWindow("Alchemy++ alpha v0.1", 0, 0, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
+	SDL_Window* win = SDL_CreateWindow("Alchemy++ alpha v0.1.1", 0, 0, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
 	if (win == NULL) {
 		fprintf(stderr, "SDL_CreateWindow Error: %s\n", SDL_GetError());
 		return EXIT_FAILURE;
@@ -41,7 +41,7 @@ int main(void)
 		}
 	}
 
-	SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
+	SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 	if (ren == NULL) {
 		fprintf(stderr, "SDL_CreateRenderer Error: %s\n", SDL_GetError());
 		if (win != NULL) {
@@ -51,8 +51,8 @@ int main(void)
 		return EXIT_FAILURE;
 	}
 
-	SDL_Texture* tex = IMG_LoadTexture(ren, "img/emptyuniverse.png");
-	SDL_Texture* addBtn = IMG_LoadTexture(ren, "img/addBtn.png");
+	SDL_Texture* tex = IMG_LoadTexture(ren, "gamedata/default/textures/backgrounds/emptyuniverse.png");
+	SDL_Texture* addBtn = IMG_LoadTexture(ren, "gamedata/default/textures/buttons/addBtn.png");
 	if (tex == NULL) {
 		fprintf(stderr, "SDL_CreateTextureFromSurface Error: %s\n", SDL_GetError());
 		SDL_DestroyRenderer(ren);
@@ -63,7 +63,7 @@ int main(void)
 	// Initialize font
 	TTF_Init();
 	FC_Font* font = FC_CreateFont();
-	FC_LoadFont(font, ren, "font/Roboto-Regular.ttf", 12, FC_MakeColor(255,255,255,255), TTF_STYLE_NORMAL);
+	FC_LoadFont(font, ren, "gamedata/default/font/Droid-Sans.ttf", 12, FC_MakeColor(255,255,255,255), TTF_STYLE_NORMAL);
 
 	Text::loadAll("en-us"); //Load game text
 
@@ -203,7 +203,7 @@ int main(void)
 		SDL_RenderCopy(ren, addBtn, NULL, &r); //Render add button
 
 		//Render text
-		FC_Draw(font, ren, 0, 0, "Alchemy++ alpha v0.1");
+		FC_Draw(font, ren, 0, 0, "Alchemy++ alpha v0.1.1");
 
 		FC_Draw(font, ren, 20, winHeight-20, "elems: %d", draggables.size());
 
@@ -225,7 +225,7 @@ int main(void)
 				{d->scale, d->scale}, d->name.c_str());
 		}
 
-		FC_Draw(font, ren, winWidth-200, 10, "FPS: %f", 1000/deltaTime);
+		FC_Draw(font, ren, winWidth-170, 10, "FPS: %f", 1000/deltaTime);
 
 		SDL_RenderPresent(ren);
 		endTick = Clock::now();

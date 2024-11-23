@@ -1,6 +1,3 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <iostream>
@@ -15,11 +12,11 @@ std::string menuStrings[64]; //Strings for all menu text
 std::unordered_map<std::string, std::string> elementStrings; //Strings for all element names
 namespace Text {
 	void loadAll(std::string language) {
-		char* comboJSONString = loadFile("combos.json");
+		char* comboJSONString = loadFile("gamedata/default/combos.json");
 		cJSON* comboJSONRoot = cJSON_Parse(comboJSONString);
 		free(comboJSONString); //Load combination data
 
-		language += ".json";
+		language = "gamedata/default/lang/" + language + ".json";
 		char* textJSONString = loadFile(language.c_str());
 		cJSON* textJSONRoot = cJSON_Parse(textJSONString);
 

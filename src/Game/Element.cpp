@@ -1,6 +1,4 @@
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <stdio.h>
 #include <iostream>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -120,9 +118,9 @@ namespace elem {
 
 	void loadTexture(SDL_Renderer* ren, DraggableElement* elem) {
 		if (textureIndex.find(elem->id) == textureIndex.end()) {
-			std::string textureName = std::string("img/elem/") + elem->id + ".png"; //Get filename for texture
+			std::string textureName = std::string("gamedata/default/textures/elems/") + elem->id + ".png"; //Get filename for texture
 			SDL_Texture* newTexture = IMG_LoadTexture(ren, textureName.c_str());
-			if (newTexture == NULL) { newTexture = IMG_LoadTexture(ren, "img/elem/_dummy.png"); }
+			if (newTexture == NULL) { newTexture = IMG_LoadTexture(ren, "gamedata/default/textures/elems/_dummy.png"); }
 			textureIndex.insert(std::make_pair(elem->id, newTexture)); //Add texture to index if it isn't already there
 			elem->texture = newTexture; //Give element new texture
 		} else {
@@ -134,7 +132,7 @@ namespace elem {
 	}
 	void JSONInit() {
 		// Load JSON file
-		char* comboJSONStr = loadFile("combos.json");
+		char* comboJSONStr = loadFile("gamedata/default/combos.json");
 		root = cJSON_Parse(comboJSONStr);
 		free(comboJSONStr); //Save memory
 	}

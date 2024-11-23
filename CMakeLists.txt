@@ -40,7 +40,7 @@ add_executable(AlchemyPlusPlus src/main.cpp) #Main file
 
 if(WIN32)
     target_link_options(AlchemyPlusPlus PRIVATE "-mwindows") #Disable console pop-up
-    target_link_options(AlchemyPlusPlus PRIVATE -static-libgcc -static-libstdc++) #Statically compile standard library
+    target_link_options(AlchemyPlusPlus PRIVATE -static gcc stdc++ winpthread -dynamic) #Statically link libraries
 endif(WIN32)
 
 # SDL2::SDL2main may or may not be available. It is e.g. required by Windows GUI applications
