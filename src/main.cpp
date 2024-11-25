@@ -2,6 +2,8 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
+#define GLEW_STATIC
+#include <GL/glew.h>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,8 +23,9 @@ typedef std::chrono::high_resolution_clock Clock;
 
 int main(int argc, char* argv[])
 {
-	std::vector<std::string> elemsUnlocked = {"air", "earth", "fire", "water"};
-	elem::JSONInit(); //Initialize JSON
+	SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl"); //Always use OpenGL
+	SDL_GLContext glContext;
+	SDL_Event e;
 
 	// SDL Init
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
@@ -30,7 +33,7 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 	// Initialize window
-	SDL_Window* win = SDL_CreateWindow("Alchemy++ alpha v0.1.2", 64, 64, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
+	SDL_Window* win = SDL_CreateWindow("Alchemy++ alpha v0.1.2", 64, 64, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
 	if (win == NULL) {
 		fprintf(stderr, "SDL_CreateWindow Error: %s\n", SDL_GetError());
 		return EXIT_FAILURE;
@@ -40,6 +43,7 @@ int main(int argc, char* argv[])
 			printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
 		}
 	}
+	glContext = SDL_GL_CreateContext(win);
 
 	SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
 	if (ren == NULL) {
@@ -65,9 +69,11 @@ int main(int argc, char* argv[])
 	FC_Font* font = FC_CreateFont();
 	FC_LoadFont(font, ren, "gamedata/default/font/Droid-Sans.ttf", 12, FC_MakeColor(255,255,255,255), TTF_STYLE_NORMAL);
 
+	elem::JSONInit(); //Initialize JSON
 	Text::loadAll("en-us"); //Load game text
 
 	// Game loop init
+	std::vector<std::string> elemsUnlocked = {"air", "earth", "fire", "water"};
 	std::vector<std::unique_ptr<DraggableElement>> draggables; //List of draggable elements on screen
 	std::vector<std::string> elementsUnlocked; //Every element the user has unlocked
 
@@ -91,7 +97,6 @@ int main(int argc, char* argv[])
 		auto startTick = Clock::now();
 
 		//deltaTime = endTick-startTick;
-		SDL_Event e; //Event variable
 
 		while (SDL_PollEvent(&e)) {
 			switch (e.type) {
@@ -232,6 +237,7 @@ int main(int argc, char* argv[])
 		deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(endTick - startTick).count() / 1000.0; //Get the time the frame took in ms
 	}
 
+	SDL_GL_DeleteContext(glContext);
 	SDL_DestroyTexture(tex);
 	SDL_DestroyRenderer(ren);
 	SDL_DestroyWindow(win);
