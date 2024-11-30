@@ -1,5 +1,4 @@
 #include <SDL2/SDL.h>
-#include <stdlib.h>
 #include <stdbool.h>
 #include "SDL_FontCache.h"
 #include "../Game/Sprite.hpp"

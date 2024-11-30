@@ -7,7 +7,6 @@
 #include <unordered_map>
 #include <algorithm>
 #include <memory>
-#include <cmath>
 #include "Element.hpp"
 #include "Sprite.hpp"
 #include "../GFX/Animation.hpp"
@@ -15,8 +14,6 @@
 #include "../JSON/cJSON.h"
 #include "../Misc/IO.hpp"
 #include "../Menu/Lang.hpp"
-
-bool compareZIndexRaw(DraggableElement* d1, DraggableElement* d2) { return d1->z > d2->z; } //Z-index comparison for raw pointers
 
 // Constructor
 DraggableElement::DraggableElement(std::string elemID, int mX, int mY) {
@@ -44,7 +41,6 @@ DraggableElement::~DraggableElement() {
 
 // Checks if two elements are colliding and combines them if possible
 void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> &draggables, std::vector<std::string> &elementsUnlocked) {
-	elem::firstParentElem = this;
 	// Place newly unlocked elements on screen
 	DraggableElement* matchingElem;
 	bool comboMade = false; //This indicates if a valid combination was made and allows the function to unlock that element
@@ -62,7 +58,12 @@ void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> 
 		}
 	}
 	if (!collidedElements.empty()) {
-		std::stable_sort(collidedElements.begin(), collidedElements.end(), compareZIndexRaw);
+		std::stable_sort(collidedElements.begin(), collidedElements.end(), [this]
+		(DraggableElement* d1, DraggableElement* d2) {
+			SDL_Rect* d1Intersect; SDL_IntersectRect(this->box, d1->box, d1Intersect);
+			SDL_Rect* d2Intersect; SDL_IntersectRect(this->box, d2->box, d2Intersect); //The intersecting rectangles between the combined elements. The combination with the largest intersection area will be the combined element
+			return d1->z > d2->z && (d1Intersect->x * d1Intersect->y) > (d2Intersect->x * d2Intersect->y);
+		});
 		matchingElem = collidedElements.back(); //Match with the element with the lowest Z-index
 		elem::secondParentElem = collidedElements.back(); //Match with the element with the lowest Z-index
 	}
@@ -97,7 +98,7 @@ void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> 
 		}
 
 		// Queue combined elements to start despawning
-		elem::firstParentElem->anim = ANIM_SHRINK;
+		this->anim = ANIM_SHRINK;
 		elem::secondParentElem->anim = ANIM_SHRINK;
 		anim::animInProgress = true; //Start animations
 	}
@@ -111,7 +112,6 @@ void DraggableElement::deleteElem(std::vector<std::unique_ptr<DraggableElement>>
 
 namespace elem {
 	std::unordered_map<std::string, SDL_Texture*> textureIndex;
-	DraggableElement* firstParentElem;
 	DraggableElement* secondParentElem; //First and second selected elements
 	cJSON* root = NULL; //Root of combination JSON data
 

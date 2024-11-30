@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include <stdbool.h>
 #include <vector>
 #include <string>
@@ -27,12 +26,9 @@ public:
 	static void deleteElem(std::vector<std::unique_ptr<DraggableElement>> &draggables, DraggableElement* elem);
 };
 
-bool compareZIndexRaw(DraggableElement* d1, DraggableElement* d2);
-
 namespace elem {
 	extern std::unordered_map<std::string, SDL_Texture*> textureIndex;
 	extern cJSON* root; //Root of combination JSON data
-	extern DraggableElement* firstParentElem;
 	extern DraggableElement* secondParentElem; //First and second selected elements
 	void loadTexture(SDL_Renderer* ren, DraggableElement* elem);
 	void spawnDraggable(std::vector<std::unique_ptr<DraggableElement>> &draggables, int x, int y, std::string name);

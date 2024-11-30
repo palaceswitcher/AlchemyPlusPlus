@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 	// Initialize window
-	SDL_Window* win = SDL_CreateWindow("Alchemy++ alpha v0.2", 64, 64, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
+	SDL_Window* win = SDL_CreateWindow("Alchemy++ alpha v0.3", 64, 64, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
 	if (win == NULL) {
 		fprintf(stderr, "SDL_CreateWindow Error: %s\n", SDL_GetError());
 		return EXIT_FAILURE;
@@ -79,8 +79,6 @@ int main(int argc, char* argv[])
 	FC_Font* font = FC_CreateFont();
 	FC_LoadFont(font, ren, "gamedata/default/font/Open-Sans.ttf", 12, FC_MakeColor(255,255,255,255), TTF_STYLE_NORMAL);
 
-	//FC_LoadFontFromTTF(font, ren, ttfFont, FC_MakeColor(255,255,255,255));
-
 	elem::JSONInit(); //Initialize JSON
 	Text::loadAll("en-us"); //Load game text
 
@@ -103,13 +101,13 @@ int main(int argc, char* argv[])
 
 	auto endTick = Clock::now();
 	double deltaTime = 1.0/60;
+	// Game flags
+	bool deleteNeeded = false; //Used to determine if any elements need to be deleted
 	bool zSortNeeded = false; //Used to indicate if elements need to be sorted
 	bool quit = false; //Main loop exit flag
 	while (!quit) {
 		SDL_GetWindowSize(win, &winWidth, &winHeight); //Get screen size
 		auto startTick = Clock::now();
-
-		//deltaTime = endTick-startTick;
 
 		SDL_Event e;
 		ImGui_ImplSDL2_ProcessEvent(&e);
@@ -136,27 +134,39 @@ int main(int argc, char* argv[])
 						selectedElem = NULL; //Release selected rectangle when left is released
 						zSortNeeded = true; //Re-sort Z-index after element was dropped
 					}
+					// Remove if right clicked
 					if (rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
 						rightClickDown = false;
+						if (selectedElem != NULL) {
+							selectedElem->anim = ANIM_SHRINK;
+							anim::animInProgress = true;
+							selectedElem = nullptr;
+						}
 					}
 					break;
 				case SDL_MOUSEBUTTONDOWN:
+					// Get element clicked regardless of mouse button
+					std::vector<DraggableElement*> clickMatches; //Every element that the cursor clicked on
+					if (selectedElem == NULL) {
+						for (auto &d : draggables) {
+							if (SDL_PointInRect(&mousePos, d->box)) {
+								clickMatches.push_back(d.get());
+							}
+						}
+						if (!clickMatches.empty()) {
+							zSortNeeded = true; //Z-index will need to be resorted as this element will be moved to the front
+							std::stable_sort(clickMatches.begin(), clickMatches.end(), [](DraggableElement* d1, DraggableElement* d2) {
+								return d1->z > d2->z;
+							});
+
+							selectedElem = clickMatches.back(); //Select rectangle with highest Z-index
+							selectedElem->z = 0; //Move to front of z-index
+						}
+					}
 					if (!leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
 						leftClickDown = true;
-
-						std::vector<DraggableElement*> clickMatches; //Every element that the mouse clicked on
 						if (selectedElem == NULL) {
-							for (auto &d : draggables) {
-								if (SDL_PointInRect(&mousePos, d->box)) {
-									clickMatches.push_back(d.get());
-								}
-							}
 							if (!clickMatches.empty()) {
-								zSortNeeded = true; //Z-index will need to be resorted as this element will be moved to the front
-								std::stable_sort(clickMatches.begin(), clickMatches.end(), compareZIndexRaw); //Sort matching elements by Z-index, with the highest coming last
-
-								selectedElem = clickMatches.back(); //Select rectangle with highest Z-index
-								selectedElem->z = 0; //Move to front of z-index
 								clickOffset.x = mousePos.x - selectedElem->box->x;
 								clickOffset.y = mousePos.y - selectedElem->box->y; //Get clicked point in element box relative to its boundary
 							}
@@ -164,12 +174,18 @@ int main(int argc, char* argv[])
 							clickOffset.x = mousePos.x - selectedElem->box->x;
 							clickOffset.y = mousePos.y - selectedElem->box->y; //Don't look for a new element to select if one is already selected
 						}
-						//Spawn new elements on double click
-						if (SDL_GetTicks64() > leftClickTick && SDL_GetTicks64() <= leftClickTick + 250) { //Double clicks have to be within 3/8 second of each other
-							elem::spawnDraggable(draggables, mousePos.x, mousePos.y+32, "air");
-							elem::spawnDraggable(draggables, mousePos.x, mousePos.y-32, "earth");
-							elem::spawnDraggable(draggables, mousePos.x-32, mousePos.y, "fire");
-							elem::spawnDraggable(draggables, mousePos.x+32, mousePos.y, "water");
+						// Spawn new elements on double click
+						if (SDL_GetTicks64() > leftClickTick && SDL_GetTicks64() <= leftClickTick + 250) { //Double clicks have to be within 1/4 second of each other
+							if (selectedElem == NULL) {
+								elem::spawnDraggable(draggables, mousePos.x, mousePos.y+40, "air");
+								elem::spawnDraggable(draggables, mousePos.x, mousePos.y-40, "earth");
+								elem::spawnDraggable(draggables, mousePos.x-40, mousePos.y, "fire");
+								elem::spawnDraggable(draggables, mousePos.x+40, mousePos.y, "water");
+							} else {
+								int hSpawnOffset = ((selectedElem->box->x + selectedElem->box->w/2) > mousePos.x) ? -40 : 40;
+								int vSpawnOffset = ((selectedElem->box->y + selectedElem->box->h/2) > mousePos.y) ? -40 : 40; //Duplocate the element to the corner it was clicked
+								elem::spawnDraggable(draggables, selectedElem->box->x+hSpawnOffset, selectedElem->box->y+vSpawnOffset, selectedElem->id); //Duplicate element if it's double clicked
+							}
 						}
 						leftClickTick = SDL_GetTicks64(); //Get next click tick
 					}
@@ -182,7 +198,8 @@ int main(int argc, char* argv[])
 		}
 		// Sort draggable elements by z index when animations finish
 		if (zSortNeeded && !anim::animInProgress) {
-			std::stable_sort(draggables.begin(), draggables.end(), [](const std::unique_ptr<DraggableElement> &d1, const std::unique_ptr<DraggableElement> &d2) {
+			std::stable_sort(draggables.begin(), draggables.end(), []
+			(const std::unique_ptr<DraggableElement> &d1, const std::unique_ptr<DraggableElement> &d2) {
 				return d1->z > d2->z;
 			});
 			zSortNeeded = false;
@@ -194,21 +211,23 @@ int main(int argc, char* argv[])
 				if (d->anim == ANIM_SHRINK) {
 					anim::animateShrink(d.get(), deltaTime);
 					animDone = true;
+				} else if (d->anim == ANIM_SHRINK_END) {
+					d->queuedForDeletion = true; //Queue element for deletion when it finishes shrinking
+					deleteNeeded = true; //Remove elements when they finish shrinking
+					animDone = true;
 				} else if (d->anim == ANIM_GROW) {
 					anim::animateGrow(d.get(), deltaTime);
 					animDone = true;
 				}
 				anim::animInProgress = animDone; //Stop animations if none are running
 			}
-			// Remove combined elements when they finish shrinking
-			if (elem::firstParentElem != NULL && elem::secondParentElem != NULL && elem::firstParentElem->anim == ANIM_SHRINK_END && elem::secondParentElem->anim == ANIM_SHRINK_END) {
-				//elem::firstParentElem->queuedForDeletion = true;
-				//elem::secondParentElem->queuedForDeletion = true;
-				DraggableElement::deleteElem(draggables, elem::firstParentElem);
-				DraggableElement::deleteElem(draggables, elem::secondParentElem); //Delete combo elements when they finish shrinking
-				elem::firstParentElem = NULL;
-				elem::secondParentElem = NULL;
-			}
+		}
+		// Remove elements that are queued for deletion if needed
+		if (deleteNeeded) {
+			draggables.erase(std::remove_if(draggables.begin(), draggables.end(), []
+			(const std::unique_ptr<DraggableElement> &d) { return d->queuedForDeletion; }
+			), draggables.end());
+			deleteNeeded = false;
 		}
 
 		// Load draggable element textures
@@ -227,7 +246,7 @@ int main(int argc, char* argv[])
 		SDL_RenderCopy(ren, addBtn, NULL, &r); //Render add button
 
 		//Render text
-		FC_Draw(font, ren, 0, 0, "Alchemy++ alpha v0.2");
+		FC_Draw(font, ren, 0, 0, "Alchemy++ alpha v0.3");
 
 		FC_Draw(font, ren, 20, winHeight-20, "elems: %d", draggables.size());
 
