@@ -20,7 +20,6 @@ bool compareZIndexRaw(DraggableElement* d1, DraggableElement* d2) { return d1->z
 
 // Constructor
 DraggableElement::DraggableElement(std::string elemID, int mX, int mY) {
-	FC_Font* font = FC_CreateFont();
 	SDL_Rect* newElemBox = (SDL_Rect*) malloc(sizeof(struct SDL_Rect)); //Allocate space for new element's rectangle
 
 	box = newElemBox; //Add box to new element

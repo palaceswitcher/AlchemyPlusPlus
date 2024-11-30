@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.31)
+cmake_minimum_required(VERSION 3.28)
 project(AlchemyPlusPlus)
 
 # Create an option to switch between a system sdl library and a vendored sdl library
@@ -24,20 +24,33 @@ endif()
 # Find dependencies
 find_package(SDL2_image REQUIRED)
 find_package(SDL2_ttf REQUIRED)
-find_package(GLEW REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS})
+include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS})
 
-# Create your game executable target as usual
-add_subdirectory(src/JSON)
+# Include source directories and add executable
 include_directories(src/JSON)
-add_subdirectory(src/GFX)
+add_subdirectory(src/JSON)
 include_directories(src/GFX)
-add_subdirectory(src/Game)
+add_subdirectory(src/GFX)
 include_directories(src/Game)
-add_subdirectory(src/Misc)
+add_subdirectory(src/Game)
 include_directories(src/Misc)
-add_subdirectory(src/Menu)
+add_subdirectory(src/Misc)
 include_directories(src/Menu)
+add_subdirectory(src/Menu)
+# ImGui linking
+include_directories(src/include/imgui)
+include_directories(src/include/imgui/backends)
+add_library(ImGui
+    src/include/imgui/imgui.cpp
+    src/include/imgui/imgui_demo.cpp
+    src/include/imgui/imgui_draw.cpp
+    src/include/imgui/imgui_tables.cpp
+    src/include/imgui/imgui_widgets.cpp
+    src/include/imgui/backends/imgui_impl_sdl2.cpp
+    src/include/imgui/backends/imgui_impl_sdlrenderer2.cpp
+    src/include/imgui/backends/imgui_impl_opengl2.cpp
+)
+
 add_executable(AlchemyPlusPlus src/main.cpp) #Main file
 
 if(WIN32)
@@ -50,7 +63,7 @@ if(TARGET SDL2::SDL2main)
     # It has an implicit dependency on SDL2 functions, so it MUST be added before SDL2::SDL2 (or SDL2::SDL2-static)
     target_link_libraries(AlchemyPlusPlus SDL2::SDL2main)
 endif()
-target_link_libraries(AlchemyPlusPlus GLEW::GLEW)
+target_link_libraries(AlchemyPlusPlus ImGui)
 target_link_libraries(AlchemyPlusPlus JSON)
 target_link_libraries(AlchemyPlusPlus GFX)
 target_link_libraries(AlchemyPlusPlus Game)

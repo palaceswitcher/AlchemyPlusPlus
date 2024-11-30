@@ -2,13 +2,13 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
-#define GLEW_STATIC
-#include <GL/glew.h>
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_sdlrenderer2.h"
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <fstream>
 #include <string>
 #include <vector>
 #include <map>
@@ -19,21 +19,22 @@
 #include "GFX/Animation.hpp"
 #include "GFX/SDL_FontCache.h"
 #include "Menu/Lang.hpp"
+
+#if !SDL_VERSION_ATLEAST(2,0,17)
+#error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
+#endif
+
 typedef std::chrono::high_resolution_clock Clock;
 
 int main(int argc, char* argv[])
 {
-	SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl"); //Always use OpenGL
-	SDL_GLContext glContext;
-	SDL_Event e;
-
 	// SDL Init
 	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
 		fprintf(stderr, "SDL_Init Error: %s\n", SDL_GetError());
 		return EXIT_FAILURE;
 	}
 	// Initialize window
-	SDL_Window* win = SDL_CreateWindow("Alchemy++ alpha v0.1.2", 64, 64, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_OPENGL|SDL_WINDOW_RESIZABLE);
+	SDL_Window* win = SDL_CreateWindow("Alchemy++ alpha v0.2", 64, 64, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
 	if (win == NULL) {
 		fprintf(stderr, "SDL_CreateWindow Error: %s\n", SDL_GetError());
 		return EXIT_FAILURE;
@@ -43,9 +44,8 @@ int main(int argc, char* argv[])
 			printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
 		}
 	}
-	glContext = SDL_GL_CreateContext(win);
 
-	SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
+	SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
 	if (ren == NULL) {
 		fprintf(stderr, "SDL_CreateRenderer Error: %s\n", SDL_GetError());
 		if (win != NULL) {
@@ -54,6 +54,16 @@ int main(int argc, char* argv[])
 		SDL_Quit();
 		return EXIT_FAILURE;
 	}
+
+	// Set up ImGui
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; //Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  //Enable Gamepad Controls
+	ImGui::StyleColorsDark(); //Use dark mode by default
+	ImGui_ImplSDL2_InitForSDLRenderer(win, ren);
+	ImGui_ImplSDLRenderer2_Init(ren); //Init for SDL renderer
 
 	SDL_Texture* tex = IMG_LoadTexture(ren, "gamedata/default/textures/backgrounds/emptyuniverse.png");
 	SDL_Texture* addBtn = IMG_LoadTexture(ren, "gamedata/default/textures/buttons/addBtn.png");
@@ -67,7 +77,9 @@ int main(int argc, char* argv[])
 	// Initialize font
 	TTF_Init();
 	FC_Font* font = FC_CreateFont();
-	FC_LoadFont(font, ren, "gamedata/default/font/Droid-Sans.ttf", 12, FC_MakeColor(255,255,255,255), TTF_STYLE_NORMAL);
+	FC_LoadFont(font, ren, "gamedata/default/font/Open-Sans.ttf", 12, FC_MakeColor(255,255,255,255), TTF_STYLE_NORMAL);
+
+	//FC_LoadFontFromTTF(font, ren, ttfFont, FC_MakeColor(255,255,255,255));
 
 	elem::JSONInit(); //Initialize JSON
 	Text::loadAll("en-us"); //Load game text
@@ -79,6 +91,7 @@ int main(int argc, char* argv[])
 
 	elem::spawnDraggable(draggables, 288, 208, "air");
 	elem::spawnDraggable(draggables, 50, 50, "fire");
+
 	DraggableElement* selectedElem = NULL; //Currently selected draggable
 
 	bool leftClickDown = false; //Left click state, used to track drag and drop
@@ -98,6 +111,8 @@ int main(int argc, char* argv[])
 
 		//deltaTime = endTick-startTick;
 
+		SDL_Event e;
+		ImGui_ImplSDL2_ProcessEvent(&e);
 		while (SDL_PollEvent(&e)) {
 			switch (e.type) {
 				case SDL_QUIT:
@@ -158,11 +173,9 @@ int main(int argc, char* argv[])
 						}
 						leftClickTick = SDL_GetTicks64(); //Get next click tick
 					}
+
 					if (!rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
 						rightClickDown = true;
-						if (selectedElem != NULL) {
-							std::cout << "Selected: " << selectedElem->id << std::endl;
-						}
 					}
 					break;
 			}
@@ -197,23 +210,29 @@ int main(int argc, char* argv[])
 				elem::secondParentElem = NULL;
 			}
 		}
-		// Load textures
+
+		// Load draggable element textures
 		for (auto &d : draggables) {
 			elem::loadTexture(ren, d.get());
 		}
 		SDL_RenderClear(ren);
+
+		// Start the Dear ImGui frame
+		ImGui_ImplSDLRenderer2_NewFrame();
+		ImGui_ImplSDL2_NewFrame();
+		ImGui::NewFrame();
 
 		SDL_RenderCopy(ren, tex, NULL, NULL); //Render background
 		SDL_Rect r{winWidth/2-32, winHeight-80, 64, 64};
 		SDL_RenderCopy(ren, addBtn, NULL, &r); //Render add button
 
 		//Render text
-		FC_Draw(font, ren, 0, 0, "Alchemy++ alpha v0.1.2");
+		FC_Draw(font, ren, 0, 0, "Alchemy++ alpha v0.2");
 
 		FC_Draw(font, ren, 20, winHeight-20, "elems: %d", draggables.size());
 
 		// Render every draggable element
-		for (auto const& d : draggables) {
+		for (auto &d : draggables) {
 			if ((int)d->scale != 1) {
 				SDL_Rect* scaledRect = anim::applyScale(d.get()); //Get scaled rect
 				SDL_RenderCopy(ren, d->texture, NULL, scaledRect);
@@ -232,12 +251,19 @@ int main(int argc, char* argv[])
 
 		FC_Draw(font, ren, winWidth-170, 10, "FPS: %f", 1000/deltaTime);
 
+		ImGui::Render(); //Render ImGui stuff
+		ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), ren);
 		SDL_RenderPresent(ren);
+
 		endTick = Clock::now();
 		deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(endTick - startTick).count() / 1000.0; //Get the time the frame took in ms
 	}
 
-	SDL_GL_DeleteContext(glContext);
+	// Cleanup
+	ImGui_ImplSDLRenderer2_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
+
 	SDL_DestroyTexture(tex);
 	SDL_DestroyRenderer(ren);
 	SDL_DestroyWindow(win);

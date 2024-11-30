@@ -11,7 +11,7 @@ The following build instructions should work on Linux and Windows provided the a
 - CMake
 
 ```
-git clone https://github.com/palaceswitcher/AlchemyPlusPlus
+git clone --recursive https://github.com/palaceswitcher/AlchemyPlusPlus
 cd AlchemyPlusPlus
 mkdir build && cd build
 cmake ..
