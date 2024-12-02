@@ -7,18 +7,17 @@
 #include <vector>
 #include "IO.hpp"
 
-char* loadFile(const char* path) {
-	/*std::ifstream file(path);
+std::string loadFile(std::string path) {
+	std::ifstream file(path);
 	if (!file.is_open()) {
-		std::cerr < "Error opening file\"" << path << "\"." << std::endl;
-		return 1;
+		std::cerr << "ERROR: File \"" << path << "\" not found.\n";
+		return ""; //Return nothing if the file doesn't exist
 	}
+	std::stringstream buffer;
+	buffer << file.rdbuf();
+	return buffer.str();
 
-	std::ostringstream ss;
-	ss << file.rdbuf();
-	return sstr.str().c_str();*/
-
-	char* buffer;
+	/*char* buffer;
 	long length;
 	FILE* f = fopen (path, "rb"); //Open file
 	if (f == NULL) {
@@ -39,5 +38,5 @@ char* loadFile(const char* path) {
 	}
 	buffer[length] = '\0'; //Null terminate buffer
 
-    return buffer;
+    return buffer;*/
 }

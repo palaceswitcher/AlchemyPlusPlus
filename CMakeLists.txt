@@ -1,15 +1,18 @@
 cmake_minimum_required(VERSION 3.28)
 project(AlchemyPlusPlus)
 
-# Create an option to switch between a system sdl library and a vendored sdl library
-option(MYGAME_VENDORED "Use vendored libraries" OFF)
+# Build options
+option(MYGAME_VENDORED "Use vendored SDL libraries" OFF) #Switch between a system sdl library and a vendored sdl library
+option(DEBUG_BUILD "Create debug build" ON)
 
 # Build settings
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug)
+if(DEBUG_BUILD)
+    set(CMAKE_BUILD_TYPE Debug)
+    set(CMAKE_DEBUG_POSTFIX d)
+else()
+    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 endif()
-set(CMAKE_DEBUG_POSTFIX d)
-#set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 if(MYGAME_VENDORED)
     add_subdirectory(vendored/sdl EXCLUDE_FROM_ALL)

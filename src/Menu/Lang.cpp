@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include "../Game/GameHandler.hpp"
 #include "../Misc/IO.hpp"
 #include "../JSON/cJSON.h"
 #include "Lang.hpp"
@@ -12,13 +13,11 @@ std::string menuStrings[64]; //Strings for all menu text
 std::unordered_map<std::string, std::string> elementStrings; //Strings for all element names
 namespace Text {
 	void loadAll(std::string language) {
-		char* comboJSONString = loadFile("gamedata/default/combos.json");
-		cJSON* comboJSONRoot = cJSON_Parse(comboJSONString);
-		free(comboJSONString); //Load combination data
+		cJSON* comboJSONRoot = Game::getComboData();
 
-		language = "gamedata/default/lang/" + language + ".json";
-		char* textJSONString = loadFile(language.c_str());
-		cJSON* textJSONRoot = cJSON_Parse(textJSONString);
+		language = Game::getTextDir() + language + ".json";
+		std::string textJSONStr = loadFile(language);
+		cJSON* textJSONRoot = cJSON_Parse(textJSONStr.c_str());
 
 		cJSON* temp = comboJSONRoot->child;
 		while (temp != NULL) {

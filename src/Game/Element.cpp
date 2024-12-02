@@ -9,6 +9,7 @@
 #include <memory>
 #include "Element.hpp"
 #include "Sprite.hpp"
+#include "GameHandler.hpp"
 #include "../GFX/Animation.hpp"
 #include "../GFX/SDL_FontCache.h"
 #include "../JSON/cJSON.h"
@@ -45,7 +46,7 @@ void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> 
 	DraggableElement* matchingElem;
 	bool comboMade = false; //This indicates if a valid combination was made and allows the function to unlock that element
 
-	cJSON* elemJSON = cJSON_GetObjectItem(elem::root, this->id.c_str());
+	cJSON* elemJSON = cJSON_GetObjectItem(Game::getComboData(), this->id.c_str());
 	cJSON* elemCombos = cJSON_GetObjectItem(elemJSON, "combos"); //Get combinations for first selected element
 	if (elemCombos == NULL) { return; }
 	int startY = this->box->y;
@@ -113,7 +114,6 @@ void DraggableElement::deleteElem(std::vector<std::unique_ptr<DraggableElement>>
 namespace elem {
 	std::unordered_map<std::string, SDL_Texture*> textureIndex;
 	DraggableElement* secondParentElem; //First and second selected elements
-	cJSON* root = NULL; //Root of combination JSON data
 
 	void loadTexture(SDL_Renderer* ren, DraggableElement* elem) {
 		if (textureIndex.find(elem->id) == textureIndex.end()) {
@@ -128,11 +128,5 @@ namespace elem {
 	}
 	void spawnDraggable(std::vector<std::unique_ptr<DraggableElement>> &draggables, int x, int y, std::string name) {
 		draggables.push_back(std::make_unique<DraggableElement>(name, x, y)); //Add to list of elements
-	}
-	void JSONInit() {
-		// Load JSON file
-		char* comboJSONStr = loadFile("gamedata/default/combos.json");
-		root = cJSON_Parse(comboJSONStr);
-		free(comboJSONStr); //Save memory
 	}
 }

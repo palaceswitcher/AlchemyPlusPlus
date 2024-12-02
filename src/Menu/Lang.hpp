@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include "../GFX/SDL_FontCache.h"
 #ifndef LANG_HPP_ //Include guard
 #define LANG_HPP_
 

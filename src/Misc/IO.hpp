@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -8,6 +7,6 @@
 #ifndef IO_HPP_ //Include guard
 #define IO_HPP_
 
-char* loadFile(char const* path);
+std::string loadFile(std::string path);
 
 #endif

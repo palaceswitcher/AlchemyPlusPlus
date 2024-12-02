@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <chrono>
 #include <memory>
+#include "GameHandler.hpp"
 #include "Game/Element.hpp"
 #include "GFX/Animation.hpp"
 #include "GFX/SDL_FontCache.h"
@@ -65,8 +66,16 @@ int main(int argc, char* argv[])
 	ImGui_ImplSDL2_InitForSDLRenderer(win, ren);
 	ImGui_ImplSDLRenderer2_Init(ren); //Init for SDL renderer
 
-	SDL_Texture* tex = IMG_LoadTexture(ren, "gamedata/default/textures/backgrounds/emptyuniverse.png");
-	SDL_Texture* addBtn = IMG_LoadTexture(ren, "gamedata/default/textures/buttons/addBtn.png");
+	// Load default game
+	if (!Game::loadGameData("default")) {
+		std::cerr << "ERROR: Game data \"" << "default" << "\" is missing or malformed.\n";
+	}
+	Text::loadAll("en-us"); //Load game text
+
+	std::string texDir = Game::getTextureDir() + "backgrounds/emptyuniverse.png";
+	SDL_Texture* tex = IMG_LoadTexture(ren, texDir.c_str());
+	std::string addBtnDir = Game::getTextureDir() + "buttons/addBtn.png";
+	SDL_Texture* addBtn = IMG_LoadTexture(ren, addBtnDir.c_str());
 	if (tex == NULL) {
 		fprintf(stderr, "SDL_CreateTextureFromSurface Error: %s\n", SDL_GetError());
 		SDL_DestroyRenderer(ren);
@@ -74,13 +83,12 @@ int main(int argc, char* argv[])
 		SDL_Quit();
 		return EXIT_FAILURE;
 	}
+
 	// Initialize font
 	TTF_Init();
 	FC_Font* font = FC_CreateFont();
-	FC_LoadFont(font, ren, "gamedata/default/font/Open-Sans.ttf", 12, FC_MakeColor(255,255,255,255), TTF_STYLE_NORMAL);
-
-	elem::JSONInit(); //Initialize JSON
-	Text::loadAll("en-us"); //Load game text
+	std::string fontPath = Game::getFontDir() + "/Open-Sans.ttf";
+	FC_LoadFont(font, ren, fontPath.c_str(), 12, FC_MakeColor(255,255,255,255), TTF_STYLE_NORMAL);
 
 	// Game loop init
 	std::vector<std::string> elemsUnlocked = {"air", "earth", "fire", "water"};
