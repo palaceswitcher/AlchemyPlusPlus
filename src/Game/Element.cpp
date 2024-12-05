@@ -10,11 +10,11 @@
 #include "Element.hpp"
 #include "Sprite.hpp"
 #include "GameHandler.hpp"
-#include "../GFX/Animation.hpp"
-#include "../GFX/SDL_FontCache.h"
-#include "../JSON/cJSON.h"
-#include "../Misc/IO.hpp"
-#include "../Menu/Lang.hpp"
+#include "Animation.hpp"
+#include "SDL_FontCache.h"
+#include "cJSON.h"
+#include "IO.hpp"
+#include "Lang.hpp"
 
 // Constructor
 DraggableElement::DraggableElement(std::string elemID, int mX, int mY) {
@@ -33,6 +33,7 @@ DraggableElement::DraggableElement(std::string elemID, int mX, int mY) {
 	anim = ANIM_GROW; //Make element grow on spawn
 	name = Text::getElemName(elemID);
 
+	elem::loadTexture(this); //Get texture
 	anim::animInProgress = true; //Start animations
 }
 
@@ -43,7 +44,7 @@ DraggableElement::~DraggableElement() {
 // Checks if two elements are colliding and combines them if possible
 void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> &draggables, std::vector<std::string> &elementsUnlocked) {
 	// Place newly unlocked elements on screen
-	DraggableElement* matchingElem;
+	DraggableElement* matchingElem; //The element successfully merged with
 	bool comboMade = false; //This indicates if a valid combination was made and allows the function to unlock that element
 
 	cJSON* elemJSON = cJSON_GetObjectItem(Game::getComboData(), this->id.c_str());
@@ -66,7 +67,6 @@ void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> 
 			return d1->z > d2->z && (d1Intersect->x * d1Intersect->y) > (d2Intersect->x * d2Intersect->y);
 		});
 		matchingElem = collidedElements.back(); //Match with the element with the lowest Z-index
-		elem::secondParentElem = collidedElements.back(); //Match with the element with the lowest Z-index
 	}
 
 	if (comboMade) {
@@ -100,7 +100,7 @@ void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> 
 
 		// Queue combined elements to start despawning
 		this->anim = ANIM_SHRINK;
-		elem::secondParentElem->anim = ANIM_SHRINK;
+		matchingElem->anim = ANIM_SHRINK;
 		anim::animInProgress = true; //Start animations
 	}
 }
@@ -113,13 +113,15 @@ void DraggableElement::deleteElem(std::vector<std::unique_ptr<DraggableElement>>
 
 namespace elem {
 	std::unordered_map<std::string, SDL_Texture*> textureIndex;
-	DraggableElement* secondParentElem; //First and second selected elements
 
-	void loadTexture(SDL_Renderer* ren, DraggableElement* elem) {
+	void loadTexture(DraggableElement* elem) {
 		if (textureIndex.find(elem->id) == textureIndex.end()) {
-			std::string textureName = std::string("gamedata/default/textures/elems/") + elem->id + ".png"; //Get filename for texture
-			SDL_Texture* newTexture = IMG_LoadTexture(ren, textureName.c_str());
-			if (newTexture == NULL) { newTexture = IMG_LoadTexture(ren, "gamedata/default/textures/elems/_dummy.png"); }
+			std::string textureName = Game::getTextureDir() + "elems/" + elem->id + ".png"; //Get filename for texture
+			SDL_Texture* newTexture = IMG_LoadTexture(renderer, textureName.c_str());
+			if (newTexture == NULL) {
+				std::string dummyTexDir = Game::getTextureDir() + "elems/_dummy.png";
+				newTexture = IMG_LoadTexture(renderer, dummyTexDir.c_str());
+			}
 			textureIndex.insert(std::make_pair(elem->id, newTexture)); //Add texture to index if it isn't already there
 			elem->texture = newTexture; //Give element new texture
 		} else {

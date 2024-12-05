@@ -7,10 +7,15 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
-#include "../JSON/cJSON.h"
-#include "../Misc/IO.hpp"
+#include "cJSON.h"
+#include "IO.hpp"
 #include "GameHandler.hpp"
 
+// Global SDL variables
+SDL_Renderer* renderer = NULL;
+SDL_Window* window = NULL;
+
+// Directories
 const std::string GAME_DATA_DIR = "gamedata/";
 std::string gameID; //ID of the current name, used to determine its directory
 std::string currentGameDir; //Current game's root directory

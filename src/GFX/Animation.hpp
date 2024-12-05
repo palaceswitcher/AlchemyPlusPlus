@@ -1,8 +1,8 @@
 #include <SDL2/SDL.h>
 #include <stdbool.h>
 #include "SDL_FontCache.h"
-#include "../Game/Sprite.hpp"
-#include "../Game/Element.hpp"
+#include "Sprite.hpp"
+#include "Element.hpp"
 #ifndef ANIMATION_HPP_ //Include guard
 #define ANIMATION_HPP_
 

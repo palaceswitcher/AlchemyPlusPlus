@@ -16,10 +16,10 @@
 #include <chrono>
 #include <memory>
 #include "GameHandler.hpp"
-#include "Game/Element.hpp"
-#include "GFX/Animation.hpp"
-#include "GFX/SDL_FontCache.h"
-#include "Menu/Lang.hpp"
+#include "Element.hpp"
+#include "Animation.hpp"
+#include "SDL_FontCache.h"
+#include "Lang.hpp"
 
 #if !SDL_VERSION_ATLEAST(2,0,17)
 #error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
@@ -35,8 +35,8 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 	// Initialize window
-	SDL_Window* win = SDL_CreateWindow("Alchemy++ alpha v0.3", 64, 64, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
-	if (win == NULL) {
+	window = SDL_CreateWindow("Alchemy++ alpha v0.3", 64, 64, 800, 600, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
+	if (window == NULL) {
 		fprintf(stderr, "SDL_CreateWindow Error: %s\n", SDL_GetError());
 		return EXIT_FAILURE;
 	} else {
@@ -46,11 +46,11 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	SDL_Renderer* ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED);
-	if (ren == NULL) {
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	if (renderer == NULL) {
 		fprintf(stderr, "SDL_CreateRenderer Error: %s\n", SDL_GetError());
-		if (win != NULL) {
-			SDL_DestroyWindow(win);
+		if (window != NULL) {
+			SDL_DestroyWindow(window);
 		}
 		SDL_Quit();
 		return EXIT_FAILURE;
@@ -63,8 +63,8 @@ int main(int argc, char* argv[])
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; //Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  //Enable Gamepad Controls
 	ImGui::StyleColorsDark(); //Use dark mode by default
-	ImGui_ImplSDL2_InitForSDLRenderer(win, ren);
-	ImGui_ImplSDLRenderer2_Init(ren); //Init for SDL renderer
+	ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
+	ImGui_ImplSDLRenderer2_Init(renderer); //Init for SDL renderer
 
 	// Load default game
 	if (!Game::loadGameData("default")) {
@@ -73,13 +73,13 @@ int main(int argc, char* argv[])
 	Text::loadAll("en-us"); //Load game text
 
 	std::string texDir = Game::getTextureDir() + "backgrounds/emptyuniverse.png";
-	SDL_Texture* tex = IMG_LoadTexture(ren, texDir.c_str());
+	SDL_Texture* tex = IMG_LoadTexture(renderer, texDir.c_str());
 	std::string addBtnDir = Game::getTextureDir() + "buttons/addBtn.png";
-	SDL_Texture* addBtn = IMG_LoadTexture(ren, addBtnDir.c_str());
+	SDL_Texture* addBtn = IMG_LoadTexture(renderer, addBtnDir.c_str());
 	if (tex == NULL) {
 		fprintf(stderr, "SDL_CreateTextureFromSurface Error: %s\n", SDL_GetError());
-		SDL_DestroyRenderer(ren);
-		SDL_DestroyWindow(win);
+		SDL_DestroyRenderer(renderer);
+		SDL_DestroyWindow(window);
 		SDL_Quit();
 		return EXIT_FAILURE;
 	}
@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
 	TTF_Init();
 	FC_Font* font = FC_CreateFont();
 	std::string fontPath = Game::getFontDir() + "/Open-Sans.ttf";
-	FC_LoadFont(font, ren, fontPath.c_str(), 12, FC_MakeColor(255,255,255,255), TTF_STYLE_NORMAL);
+	FC_LoadFont(font, renderer, fontPath.c_str(), 12, FC_MakeColor(255,255,255,255), TTF_STYLE_NORMAL);
 
 	// Game loop init
 	std::vector<std::string> elemsUnlocked = {"air", "earth", "fire", "water"};
@@ -114,7 +114,7 @@ int main(int argc, char* argv[])
 	bool zSortNeeded = false; //Used to indicate if elements need to be sorted
 	bool quit = false; //Main loop exit flag
 	while (!quit) {
-		SDL_GetWindowSize(win, &winWidth, &winHeight); //Get screen size
+		SDL_GetWindowSize(window, &winWidth, &winHeight); //Get screen size
 		auto startTick = Clock::now();
 
 		SDL_Event e;
@@ -238,49 +238,45 @@ int main(int argc, char* argv[])
 			deleteNeeded = false;
 		}
 
-		// Load draggable element textures
-		for (auto &d : draggables) {
-			elem::loadTexture(ren, d.get());
-		}
-		SDL_RenderClear(ren);
+		SDL_RenderClear(renderer);
 
 		// Start the Dear ImGui frame
 		ImGui_ImplSDLRenderer2_NewFrame();
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-		SDL_RenderCopy(ren, tex, NULL, NULL); //Render background
+		SDL_RenderCopy(renderer, tex, NULL, NULL); //Render background
 		SDL_Rect r{winWidth/2-32, winHeight-80, 64, 64};
-		SDL_RenderCopy(ren, addBtn, NULL, &r); //Render add button
+		SDL_RenderCopy(renderer, addBtn, NULL, &r); //Render add button
 
 		//Render text
-		FC_Draw(font, ren, 0, 0, "Alchemy++ alpha v0.3");
+		FC_Draw(font, renderer, 0, 0, "Alchemy++ alpha v0.3");
 
-		FC_Draw(font, ren, 20, winHeight-20, "elems: %d", draggables.size());
+		FC_Draw(font, renderer, 20, winHeight-20, "elems: %d", draggables.size());
 
 		// Render every draggable element
 		for (auto &d : draggables) {
 			if ((int)d->scale != 1) {
 				SDL_Rect* scaledRect = anim::applyScale(d.get()); //Get scaled rect
-				SDL_RenderCopy(ren, d->texture, NULL, scaledRect);
+				SDL_RenderCopy(renderer, d->texture, NULL, scaledRect);
 				free(scaledRect); //Free it to avoid leak
 			} else {
-				SDL_RenderCopy(ren, d->texture, NULL, d->box);
+				SDL_RenderCopy(renderer, d->texture, NULL, d->box);
 			}
 
 			float textWidth = FC_GetWidth(font, d->name.c_str());
 			float textHeight = FC_GetHeight(font, d->name.c_str());
-			FC_DrawScale(font, ren,
+			FC_DrawScale(font, renderer,
 				(d->box->x + (d->box->w - textWidth)/2) + (textWidth - textWidth * d->scale)/2, //Text X position
 				(d->box->y + d->box->w) + (textHeight - textHeight * d->scale), //Text Y position
 				{d->scale, d->scale}, d->name.c_str());
 		}
 
-		FC_Draw(font, ren, winWidth-170, 10, "FPS: %f", 1000/deltaTime);
+		FC_Draw(font, renderer, winWidth-170, 10, "FPS: %f", 1000/deltaTime);
 
 		ImGui::Render(); //Render ImGui stuff
-		ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), ren);
-		SDL_RenderPresent(ren);
+		ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
+		SDL_RenderPresent(renderer);
 
 		endTick = Clock::now();
 		deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(endTick - startTick).count() / 1000.0; //Get the time the frame took in ms
@@ -292,8 +288,8 @@ int main(int argc, char* argv[])
 	ImGui::DestroyContext();
 
 	SDL_DestroyTexture(tex);
-	SDL_DestroyRenderer(ren);
-	SDL_DestroyWindow(win);
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(window);
 	SDL_Quit();
 	printf("\n"); //Break after debug messages
 

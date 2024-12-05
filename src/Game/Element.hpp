@@ -3,10 +3,10 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
-#include "../JSON/cJSON.h"
-#include "../GFX/SDL_FontCache.h"
+#include "cJSON.h"
+#include "SDL_FontCache.h"
 #include "Sprite.hpp"
-#include "../Misc/IO.hpp"
+#include "IO.hpp"
 #ifndef ELEMENT_HPP_ //Include guard
 #define ELEMENT_HPP_
 
@@ -28,8 +28,7 @@ public:
 
 namespace elem {
 	extern std::unordered_map<std::string, SDL_Texture*> textureIndex;
-	extern DraggableElement* secondParentElem; //First and second selected elements
-	void loadTexture(SDL_Renderer* ren, DraggableElement* elem);
+	void loadTexture(DraggableElement* elem);
 	void spawnDraggable(std::vector<std::unique_ptr<DraggableElement>> &draggables, int x, int y, std::string name);
 }
 

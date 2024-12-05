@@ -5,8 +5,8 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include "../Game/Sprite.hpp"
-#include "../Game/Element.hpp"
+#include "Sprite.hpp"
+#include "Element.hpp"
 #include "SDL_FontCache.h"
 #include "Animation.hpp"
 
