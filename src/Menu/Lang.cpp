@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include "../Game/GameHandler.hpp"
-#include "../Misc/IO.hpp"
-#include "../JSON/cJSON.h"
+#include "GameHandler.hpp"
+#include "IO.hpp"
+#include "cJSON.h"
 #include "Lang.hpp"
 
 std::string menuStrings[64]; //Strings for all menu text
@@ -32,7 +32,7 @@ namespace Text {
 			temp = temp->next; //Go to next element
 		}
 	}
-	std::string getElemName(std::string name) {
-		return elementStrings[name];
+	std::string getElemName(std::string id) {
+		return elementStrings[id];
 	}
 }

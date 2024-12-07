@@ -3,10 +3,10 @@ project(AlchemyPlusPlus)
 
 # Build options
 option(MYGAME_VENDORED "Use vendored SDL libraries" OFF) #Switch between a system sdl library and a vendored sdl library
-option(DEBUG_BUILD "Create debug build" ON)
+option(BUILD_DEBUG "Create debug build" ON)
 
 # Build settings
-if(DEBUG_BUILD)
+if(BUILD_DEBUG)
     set(CMAKE_BUILD_TYPE Debug)
     set(CMAKE_DEBUG_POSTFIX d)
 else()
@@ -29,30 +29,32 @@ find_package(SDL2_image REQUIRED)
 find_package(SDL2_ttf REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS})
 
-# Include source directories and add executable
-include_directories(src/JSON)
-add_subdirectory(src/JSON)
-include_directories(src/GFX)
-add_subdirectory(src/GFX)
-include_directories(src/Game)
-add_subdirectory(src/Game)
-include_directories(src/Misc)
-add_subdirectory(src/Misc)
-include_directories(src/Menu)
-add_subdirectory(src/Menu)
-# ImGui linking
-include_directories(src/include/imgui)
-include_directories(src/include/imgui/backends)
 add_library(ImGui
     src/include/imgui/imgui.cpp
     src/include/imgui/imgui_demo.cpp
     src/include/imgui/imgui_draw.cpp
     src/include/imgui/imgui_tables.cpp
     src/include/imgui/imgui_widgets.cpp
+    src/include/imgui/misc/cpp/imgui_stdlib.cpp
     src/include/imgui/backends/imgui_impl_sdl2.cpp
     src/include/imgui/backends/imgui_impl_sdlrenderer2.cpp
     src/include/imgui/backends/imgui_impl_opengl2.cpp
 )
+
+# Include source directories and add executable
+include_directories(src/JSON)
+include_directories(src/GFX)
+include_directories(src/Game)
+include_directories(src/Misc)
+include_directories(src/Menu)
+include_directories(src/include/imgui)
+include_directories(src/include/imgui/misc/cpp)
+include_directories(src/include/imgui/backends)
+add_subdirectory(src/JSON)
+add_subdirectory(src/GFX)
+add_subdirectory(src/Game)
+add_subdirectory(src/Misc)
+add_subdirectory(src/Menu)
 
 add_executable(AlchemyPlusPlus src/main.cpp) #Main file
 
