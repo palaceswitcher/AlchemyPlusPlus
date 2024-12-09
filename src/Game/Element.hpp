@@ -14,7 +14,7 @@
 
 class DraggableElement : public Sprite {
 public:
-	DraggableElement() : Sprite({NULL, NULL, 0, 1.0}) {};
+	DraggableElement() : Sprite({NULL, NULL, ANIM_NONE, 1.0}) {};
 	DraggableElement(std::string elemID, int mX, int mY);
 	~DraggableElement();
 	std::string id;

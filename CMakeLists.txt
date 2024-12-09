@@ -4,6 +4,7 @@ project(AlchemyPlusPlus)
 # Build options
 option(MYGAME_VENDORED "Use vendored SDL libraries" OFF) #Switch between a system sdl library and a vendored sdl library
 option(BUILD_DEBUG "Create debug build" ON)
+option(NATIVE_OPTIMIZE "Optimize for native CPU" OFF)
 
 # Build settings
 if(BUILD_DEBUG)
@@ -12,6 +13,9 @@ if(BUILD_DEBUG)
 else()
     set(CMAKE_BUILD_TYPE Release)
     set(CMAKE_CXX_FLAGS_RELEASE "-O2")
+endif()
+if(NATIVE_OPTIMIZE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
 endif()
 
 if(MYGAME_VENDORED)
