@@ -1,6 +1,13 @@
 Information on historical builds from before this was public may be missing or incomplete. These were pretty messy and had little version control.
 
-### Alpha v0.3 (LATEST)
+### Alpha v0.4 (LATEST)
+- Specific elements can now be spawned via the element menu.
+- Starter elements now spawn in the center.
+- Elements now despawn when dragged off-screen.
+- Resizing the window will now adjust the position of elements.
+- Double clicking an element now spawns the duplicate differently, spawning at at twice the distance from the origin that it was clicked on.
+
+### Alpha v0.3
 - Changed font from Droid Sans to Open Sans.
 - Element code has been refactored slightly.
 - Right clicking an element now deletes it.

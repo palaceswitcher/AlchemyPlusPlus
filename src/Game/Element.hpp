@@ -28,7 +28,7 @@ public:
 
 namespace elem {
 	extern std::unordered_map<std::string, SDL_Texture*> textureIndex;
-	void loadTexture(DraggableElement* elem);
+	SDL_Texture* loadTexture(std::string id, int* width, int* height);
 	void spawnDraggable(std::vector<std::unique_ptr<DraggableElement>> &draggables, int x, int y, std::string name);
 }
 

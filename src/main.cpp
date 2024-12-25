@@ -54,6 +54,7 @@ int main(int argc, char* argv[])
 			printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
 		}
 	}
+	SDL_SetWindowMinimumSize(window, 640, 480);
 
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 	if (renderer == NULL) {
@@ -108,14 +109,17 @@ int main(int argc, char* argv[])
 	SDL_Rect addButtonRect = {DEFAULT_WIDTH/2-32, DEFAULT_HEIGHT-80, 64, 64};
 	Sprite addButton = {&addButtonRect, addButtonTex, ANIM_NONE, 1.0}; //Element add button
 
-	elem::spawnDraggable(draggables, 288, 208, "air");
-	elem::spawnDraggable(draggables, 50, 50, "fire");
+	// Spawn default elements
+	elem::spawnDraggable(draggables, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, "air");
+	elem::spawnDraggable(draggables, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2-56, "earth");
+	elem::spawnDraggable(draggables, DEFAULT_WIDTH/2-56, DEFAULT_HEIGHT/2-16, "fire");
+	elem::spawnDraggable(draggables, DEFAULT_WIDTH/2+24, DEFAULT_HEIGHT/2-16, "water");
 
 	DraggableElement* selectedElem = NULL; //Currently selected draggable
 
 	bool leftClickDown = false; //Left click state, used to track drag and drop
-	long leftClickTick = 0; //The tick when left was clicked, used to detect double clicks
 	bool rightClickDown = false; //Middle click state
+	long leftClickTick = 0; //The tick when left was clicked, used to detect double clicks
 	bool addButtonClicked = false;
 	SDL_Point mousePos; //Mouse position
 	SDL_Point clickOffset; //Point in the element box clicked relative to its boundary
@@ -222,7 +226,7 @@ int main(int argc, char* argv[])
 								elem::spawnDraggable(draggables, mousePos.x+40, mousePos.y, "water");
 							} else {
 								int hSpawnOffset = ((selectedElem->box->x + selectedElem->box->w/2) > mousePos.x) ? -40 : 40;
-								int vSpawnOffset = ((selectedElem->box->y + selectedElem->box->h/2) > mousePos.y) ? -40 : 40; //Duplocate the element to the corner it was clicked
+								int vSpawnOffset = ((selectedElem->box->y + selectedElem->box->h/2) > mousePos.y) ? -40 : 40; //Duplicate the element to the corner it was clicked
 								elem::spawnDraggable(draggables, selectedElem->box->x+hSpawnOffset, selectedElem->box->y+vSpawnOffset, selectedElem->id); //Duplicate element if it's double clicked
 							}
 						}
@@ -320,15 +324,20 @@ int main(int argc, char* argv[])
 					std::string elemName = Text::getElemName(id);
 					auto pos = ImGui::GetCursorPos(); //Get position of selectable box so items can be placed on it
 					std::string selectableId = "##" + id; //Unique ID for the element's selection box
-					if (ImGui::Selectable(selectableId.c_str(), elementSearchSelected, 0, ImVec2(64.0f, ImGui::GetTextLineHeightWithSpacing() * 3))) {
-						elem::spawnDraggable(draggables, 288, 208, id);
+					if (ImGui::Selectable(selectableId.c_str(), elementSearchSelected, 0, ImVec2(64.0f, 64.0f))) {
 						elementMenuSelectCounts[id]++;
 						elementMenuSpawnCount++;
 					}
+					int elemW, elemH;
+					SDL_Texture* elemTex = elem::loadTexture(id, &elemW, &elemH); //Load texture and its dimensions
 					ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
-					ImGui::Text(elemName.c_str());
-					std::string idText = "id: " + id;
 					ImGui::Text("%d", elementMenuSelectCounts[id]); //Display the number of the element spawned
+					ImGui::SetCursorPos(ImVec2(pos.x+(64.0-elemW)/2, pos.y));
+					ImGui::Image((ImTextureID)(intptr_t) elem::textureIndex[id], ImVec2((float)elemW, (float)elemH));
+					ImGui::SetCursorPos(ImVec2(pos.x, pos.y+32));
+					ImGui::PushTextWrapPos(pos.x+64);
+					ImGui::TextWrapped("%s", elemName.c_str());
+					//ImGui::PopTextWrapPos();
 				}
 				ImGui::EndTable();
 			}
@@ -338,6 +347,11 @@ int main(int argc, char* argv[])
 			ImGui::End();
 		// Only render everything else when the menu is closed
 		} else {
+			for (auto &pair : elementMenuSelectCounts) {
+				for (int i = 0; i < pair.second; i++) {
+					elem::spawnDraggable(draggables, 288, 208, pair.first);
+				}
+			}
 			elementMenuSpawnCount = 0; //Reset spawned element count when the element menu is closed
 			elementMenuSelectCounts.clear(); //Clear element selection counter
 		}
@@ -363,7 +377,7 @@ int main(int argc, char* argv[])
 				float textHeight = FC_GetHeight(font, d->name.c_str());
 				FC_DrawScale(font, renderer,
 					(d->box->x + (d->box->w - textWidth)/2) + (textWidth - textWidth * d->scale)/2, //Text X position
-					(d->box->y + d->box->w) + (textHeight - textHeight * d->scale), //Text Y position
+					(d->box->y + d->box->w) + (textHeight - textHeight * d->scale)+2, //Text Y position
 					{d->scale, d->scale}, d->name.c_str());
 			}
 		}
