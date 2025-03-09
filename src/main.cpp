@@ -20,6 +20,7 @@
 #include <cmath>
 #include "GameHandler.hpp"
 #include "Element.hpp"
+#include "Board.hpp"
 #include "ElementMenu.hpp"
 #include "Sprite.hpp"
 #include "Animation.hpp"
@@ -104,16 +105,15 @@ int main(int argc, char* argv[])
 	}
 
 	// Game loop init
-	std::vector<std::unique_ptr<DraggableElement>> draggables; //List of draggable elements on screen
 	std::vector<std::string> elementsUnlocked = {"air", "earth", "fire", "water"}; //Every element the user has unlocked
 	SDL_Rect addButtonRect = {DEFAULT_WIDTH/2-32, DEFAULT_HEIGHT-80, 64, 64};
 	Sprite addButton = {&addButtonRect, addButtonTex, ANIM_NONE, 1.0}; //Element add button
 
 	// Spawn default elements
-	elem::spawnDraggable(draggables, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, "air");
-	elem::spawnDraggable(draggables, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2-56, "earth");
-	elem::spawnDraggable(draggables, DEFAULT_WIDTH/2-56, DEFAULT_HEIGHT/2-16, "fire");
-	elem::spawnDraggable(draggables, DEFAULT_WIDTH/2+24, DEFAULT_HEIGHT/2-16, "water");
+	Board::spawnDraggable(DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, "air");
+	Board::spawnDraggable(DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2-56, "earth");
+	Board::spawnDraggable(DEFAULT_WIDTH/2-56, DEFAULT_HEIGHT/2-16, "fire");
+	Board::spawnDraggable(DEFAULT_WIDTH/2+24, DEFAULT_HEIGHT/2-16, "water");
 
 	DraggableElement* selectedElem = NULL; //Currently selected draggable
 
@@ -124,18 +124,12 @@ int main(int argc, char* argv[])
 	SDL_Point mousePos; //Mouse position
 	SDL_Point clickOffset; //Point in the element box clicked relative to its boundary
 	int winWidth, winHeight; //Window size
-	std::string elementMenuInputBuf; //Element menu text box string
-	std::vector<std::string> matchingElemIDs; //Any elements matching the search query
-	int elementMenuSpawnCount; //Number of elements spawned in the element menu. Used to determine where an element should be placed
-	std::unordered_map<std::string, int> elementMenuSelectCounts; //The amount of times each element was selected in the element menu
 
 	auto endTick = Clock::now();
 	double deltaTime = 1.0/60;
 	// Game flags
 	bool deleteNeeded = false; //Used to determine if any elements need to be deleted
 	bool zSortNeeded = false; //Used to indicate if elements need to be sorted
-	bool elementMenuOpen = false;
-	bool elementSearchSelected; //Used to determine if an element is selected in the element search menu
 	bool quit = false; //Main loop exit flag
 	while (!quit) {
 		auto startTick = Clock::now(); //Get start tick
@@ -164,7 +158,7 @@ int main(int argc, char* argv[])
 
 						if (selectedElem != NULL) {
 							selectedElem->z++; //Move behind
-							selectedElem->makeCombo(draggables, elementsUnlocked); //See if combination was made with another element
+							selectedElem->makeCombo(elementsUnlocked); //See if combination was made with another element
 							deleteNeeded = selectedElem->queuedForDeletion = (selectedElem->box->x >= winWidth || selectedElem->box->y >= winHeight); //Delete element if it goes off-screen
 						}
 						selectedElem = NULL; //Release selected rectangle when left is released
@@ -188,9 +182,9 @@ int main(int argc, char* argv[])
 						// Check if circle around the add button is clicked
 						if (((mousePos.x-(addButton.box->x+32))*(mousePos.x-(addButton.box->x+32)) + (mousePos.y-(addButton.box->y+32))*(mousePos.y-(addButton.box->y+32))) < 32*32) {
 							addButtonClicked = true;
-							elementMenuOpen = true;
+							UI::openElementMenu();
 						} else {
-							for (auto &d : draggables) {
+							for (auto& d : *(Board::getDraggableElems())) {
 								if (!d->queuedForDeletion && SDL_PointInRect(&mousePos, d->box)) {
 									clickMatches.push_back(d.get());
 								}
@@ -220,14 +214,14 @@ int main(int argc, char* argv[])
 						// Spawn new elements on double click
 						if (SDL_GetTicks64() > leftClickTick && SDL_GetTicks64() <= leftClickTick + 250) { //Double clicks have to be within 1/4 second of each other
 							if (selectedElem == NULL) {
-								elem::spawnDraggable(draggables, mousePos.x, mousePos.y+40, "air");
-								elem::spawnDraggable(draggables, mousePos.x, mousePos.y-40, "earth");
-								elem::spawnDraggable(draggables, mousePos.x-40, mousePos.y, "fire");
-								elem::spawnDraggable(draggables, mousePos.x+40, mousePos.y, "water");
+								Board::spawnDraggable(mousePos.x, mousePos.y+40, "air");
+								Board::spawnDraggable(mousePos.x, mousePos.y-40, "earth");
+								Board::spawnDraggable(mousePos.x-40, mousePos.y, "fire");
+								Board::spawnDraggable(mousePos.x+40, mousePos.y, "water");
 							} else {
 								int hSpawnOffset = ((selectedElem->box->x + selectedElem->box->w/2) > mousePos.x) ? -40 : 40;
 								int vSpawnOffset = ((selectedElem->box->y + selectedElem->box->h/2) > mousePos.y) ? -40 : 40; //Duplicate the element to the corner it was clicked
-								elem::spawnDraggable(draggables, selectedElem->box->x+hSpawnOffset, selectedElem->box->y+vSpawnOffset, selectedElem->id); //Duplicate element if it's double clicked
+								Board::spawnDraggable(selectedElem->box->x+hSpawnOffset, selectedElem->box->y+vSpawnOffset, selectedElem->id); //Duplicate element if it's double clicked
 							}
 						}
 						leftClickTick = SDL_GetTicks64(); //Get next click tick
@@ -248,7 +242,7 @@ int main(int argc, char* argv[])
 					SDL_GetWindowSize(window, &winWidth, &winHeight); //Get new screen size
 					addButtonRect = {winWidth/2-32, winHeight-80, 64, 64}; //Position add button to the center of the screen
 					// Adjust draggable elements relative to their previous position
-					for (auto &d : draggables) {
+					for (auto& d : *(Board::getDraggableElems())) {
 						d->box->x = round(d->box->x * (double)winWidth/prevWinWidth);
 						d->box->y = round(d->box->y * (double)winHeight/prevWinHeight);
 					}
@@ -257,7 +251,8 @@ int main(int argc, char* argv[])
 		}
 		// Sort draggable elements by z index when animations finish
 		if (zSortNeeded && !anim::animInProgress) {
-			std::stable_sort(draggables.begin(), draggables.end(), []
+			auto draggableElems = Board::getDraggableElems();
+			std::stable_sort(draggableElems->begin(), draggableElems->end(), []
 			(const std::unique_ptr<DraggableElement> &d1, const std::unique_ptr<DraggableElement> &d2) {
 				return d1->z > d2->z;
 			});
@@ -266,7 +261,7 @@ int main(int argc, char* argv[])
 		// Apply animations
 		if (anim::animInProgress) {
 			bool animDone = false;
-			for (auto &d : draggables) {
+			for (auto& d : *(Board::getDraggableElems())) {
 				if (d->anim == ANIM_SHRINK) {
 					anim::animateShrink(d.get(), deltaTime);
 					animDone = true;
@@ -283,9 +278,7 @@ int main(int argc, char* argv[])
 		}
 		// Remove elements that are queued for deletion if needed
 		if (deleteNeeded) {
-			draggables.erase(std::remove_if(draggables.begin(), draggables.end(), []
-			(const std::unique_ptr<DraggableElement> &d) { return d->queuedForDeletion; }
-			), draggables.end());
+			Board::clearQueuedElements();
 			deleteNeeded = false;
 		}
 
@@ -296,75 +289,18 @@ int main(int argc, char* argv[])
 		ImGui_ImplSDL2_NewFrame();
 		ImGui::NewFrame();
 
-		if (elementMenuOpen)
-		{
-			int columnCount = (int)(ImGui::GetWindowWidth() / 64);
-			int rowCount = round((float)elementsUnlocked.size() / columnCount); //Get column and row count
-			//ImLerp(255.0f, 0.0f, (ImGui::GetTime() - start_time) / duration_seconds)
-			ImGui::SetNextWindowFocus();
-			ImGui::SetNextWindowSize(ImVec2(winWidth, winHeight), ImGuiCond_Always);
-			ImGui::SetNextWindowPos(ImVec2(winWidth*0.5, winHeight*0.5), ImGuiCond_Always, ImVec2(0.5f,0.5f)); //Center window
-			ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(15,15,15,255)); //Set color
-			ImGui::Begin("Add Element", &elementMenuOpen, ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoResize);
-			ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(63,63,63,255));
-			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(95,95,95,255)); //Style selectables
-			if (ImGui::InputTextWithHint("##elementMenuSearchBox", "Element", &elementMenuInputBuf, ImGuiInputTextFlags_CallbackEdit)) {
-				matchingElemIDs = getElemSearchResults(elementMenuInputBuf, elementsUnlocked);
-			}
-			// Create map of selection counts for each unlocked element if needed
-			if (elementMenuSelectCounts.empty()) {
-				for (auto id : elementsUnlocked) {
-					elementMenuSelectCounts.insert(std::make_pair(id, 0));
-				}
-			}
+		UI::renderElemMenu(elementsUnlocked);
 
-			if (!matchingElemIDs.empty() && ImGui::BeginTable("##elementMenuSearchGrid", columnCount)) {
-				for (auto id : matchingElemIDs) {
-					ImGui::TableNextColumn();
-					std::string elemName = Text::getElemName(id);
-					auto pos = ImGui::GetCursorPos(); //Get position of selectable box so items can be placed on it
-					std::string selectableId = "##" + id; //Unique ID for the element's selection box
-					if (ImGui::Selectable(selectableId.c_str(), elementSearchSelected, 0, ImVec2(64.0f, 64.0f))) {
-						elementMenuSelectCounts[id]++;
-						elementMenuSpawnCount++;
-					}
-					int elemW, elemH;
-					SDL_Texture* elemTex = elem::loadTexture(id, &elemW, &elemH); //Load texture and its dimensions
-					ImGui::SetCursorPos(ImVec2(pos.x, pos.y));
-					ImGui::Text("%d", elementMenuSelectCounts[id]); //Display the number of the element spawned
-					ImGui::SetCursorPos(ImVec2(pos.x+(64.0-elemW)/2, pos.y));
-					ImGui::Image((ImTextureID)(intptr_t) elem::textureIndex[id], ImVec2((float)elemW, (float)elemH));
-					ImGui::SetCursorPos(ImVec2(pos.x, pos.y+32));
-					ImGui::PushTextWrapPos(pos.x+64);
-					ImGui::TextWrapped("%s", elemName.c_str());
-					//ImGui::PopTextWrapPos();
-				}
-				ImGui::EndTable();
-			}
-			ImGui::PopStyleColor();
-			ImGui::PopStyleColor();
-			ImGui::PopStyleColor(); //Pop selectable styles
-			ImGui::End();
-		// Only render everything else when the menu is closed
-		} else {
-			for (auto &pair : elementMenuSelectCounts) {
-				for (int i = 0; i < pair.second; i++) {
-					elem::spawnDraggable(draggables, 288, 208, pair.first);
-				}
-			}
-			elementMenuSpawnCount = 0; //Reset spawned element count when the element menu is closed
-			elementMenuSelectCounts.clear(); //Clear element selection counter
-		}
 		if (true) {
 			SDL_RenderCopy(renderer, tex, NULL, NULL); //Render background
 			SDL_RenderCopy(renderer, addButton.texture, NULL, addButton.box); //Render add button
-
+	
 			//Render text
 			FC_Draw(font, renderer, 0, 0, "Alchemy++ alpha v0.3"); //Version text
-			FC_Draw(font, renderer, 20, winHeight-20, "elems: %d", draggables.size()); //Element count
-
+			FC_Draw(font, renderer, 20, winHeight-20, "elems: %d", Board::getDraggableElems()->size()); //Element count
+	
 			// Render every draggable element
-			for (auto &d : draggables) {
+			for (auto& d : *(Board::getDraggableElems())) {
 				if ((int)d->scale != 1) {
 					SDL_Rect* scaledRect = anim::applyScale(d.get()); //Get scaled rect
 					SDL_RenderCopy(renderer, d->texture, NULL, scaledRect);
@@ -372,7 +308,7 @@ int main(int argc, char* argv[])
 				} else {
 					SDL_RenderCopy(renderer, d->texture, NULL, d->box);
 				}
-
+	
 				float textWidth = FC_GetWidth(font, d->name.c_str());
 				float textHeight = FC_GetHeight(font, d->name.c_str());
 				FC_DrawScale(font, renderer,
@@ -381,7 +317,6 @@ int main(int argc, char* argv[])
 					{d->scale, d->scale}, d->name.c_str());
 			}
 		}
-
 
 		FC_Draw(font, renderer, winWidth-170, 10, "FPS: %f", 1000/deltaTime);
 

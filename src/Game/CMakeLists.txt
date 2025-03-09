@@ -1,15 +1,14 @@
 add_library (Game
-  GameHandler.hpp
   GameHandler.cpp
-  Sprite.hpp
+  Board.cpp
   Sprite.cpp
-  Element.hpp
   Element.cpp)
 
 target_link_libraries(Game PRIVATE JSON)
-target_link_libraries(Game PRIVATE Menu)
+target_link_libraries(Game PRIVATE UI)
 
 install(TARGETS Game DESTINATION bin)
 install(FILES GameHandler.hpp DESTINATION include)
+install(FILES Board.hpp DESTINATION include)
 install(FILES Sprite.hpp DESTINATION include)
 install(FILES Element.hpp DESTINATION include)

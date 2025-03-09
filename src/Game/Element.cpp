@@ -15,6 +15,7 @@
 #include "cJSON.h"
 #include "IO.hpp"
 #include "Lang.hpp"
+#include "Board.hpp"
 
 // Constructor
 DraggableElement::DraggableElement(std::string elemID, int mX, int mY) {
@@ -31,7 +32,7 @@ DraggableElement::DraggableElement(std::string elemID, int mX, int mY) {
 	anim = ANIM_GROW; //Make element grow on spawn
 	name = Text::getElemName(elemID);
 
-	texture = elem::loadTexture(id, &(newElemBox->w), &(newElemBox->h)); //Get texture
+	texture = Board::loadTexture(id, &(newElemBox->w), &(newElemBox->h)); //Get texture
 
 	anim::animInProgress = true; //Start animations
 }
@@ -41,7 +42,8 @@ DraggableElement::~DraggableElement() {
 }
 
 // Checks if two elements are colliding and combines them if possible
-void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> &draggables, std::vector<std::string> &elementsUnlocked) {
+void DraggableElement::makeCombo(std::vector<std::string> &elementsUnlocked) {
+	std::vector<std::unique_ptr<DraggableElement>>* draggableElems = Board::getDraggableElems();
 	DraggableElement* matchingElem; //The element successfully merged with
 	bool comboMade = false; //This indicates if a valid combination was made and allows the function to unlock that element
 
@@ -51,7 +53,7 @@ void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> 
 	int startY = this->box->y;
 
 	std::vector<DraggableElement*> collidedElements; //A list of every element this could match with
-	for (auto &d : draggables) {
+	for (auto &d : *draggableElems) {
 		if (d.get() != this && SDL_HasIntersection(this->box, d->box) == SDL_TRUE) {
 			comboMade = (cJSON_GetObjectItem(elemCombos, d->id.c_str()) != NULL); //Check if combination is valid (TODO REMOVE OR FIX ID SYSTEM, IT'S CURRENTLY A WASTE)
 			if (comboMade) { collidedElements.push_back(d.get()); }
@@ -93,7 +95,7 @@ void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> 
 			if (this->box->y > matchingElem->box->y) lowerElemYPos = matchingElem->box->y; //Offset by the elements with the lower X and Y positions
 			int newX = lowerElemXPos + ((i+1) * (this->box->x - matchingElem->box->x) / (numResults+1));
 			int newY = lowerElemYPos + ((i+1) * (this->box->y - matchingElem->box->y) / (numResults+1)); //Position new elements between new elements
-			elem::spawnDraggable(draggables, newX, newY, newElemNames[i]); //Add elements to screen
+			Board::spawnDraggable(newX, newY, newElemNames[i]); //Add elements to screen
 		}
 
 		// Queue combined elements to start despawning
@@ -103,33 +105,30 @@ void DraggableElement::makeCombo(std::vector<std::unique_ptr<DraggableElement>> 
 	}
 }
 
-void DraggableElement::deleteElem(std::vector<std::unique_ptr<DraggableElement>> &draggables, DraggableElement* elem) {
-	draggables.erase(std::remove_if(draggables.begin(), draggables.end(), [&](std::unique_ptr<DraggableElement> &e) {
+void DraggableElement::deleteElem(std::vector<std::unique_ptr<DraggableElement>> &draggableElems, DraggableElement* elem) {
+	draggableElems.erase(std::remove_if(draggableElems.begin(), draggableElems.end(), [&](std::unique_ptr<DraggableElement> &e) {
 		return (e.get() == elem);
 	}));
 }
 
-namespace elem {
-	std::unordered_map<std::string, SDL_Texture*> textureIndex;
+namespace Board {
+std::unordered_map<std::string, SDL_Texture*> textureIndex;
 
-	// Loads an element texture from the texture index and optionally returns the width and height
-	SDL_Texture* loadTexture(std::string id, int* width, int* height) {
-		SDL_Texture* newTexture = NULL;
-		if (textureIndex.find(id) == textureIndex.end()) {
-			std::string textureName = Game::getTextureDir() + "elems/" + id + ".png"; //Get filename for texture
-			newTexture = IMG_LoadTexture(renderer, textureName.c_str());
-			if (newTexture == NULL) {
-				std::string dummyTexDir = Game::getTextureDir() + "elems/_dummy.png";
-				newTexture = IMG_LoadTexture(renderer, dummyTexDir.c_str());
-			}
-			textureIndex.insert(std::make_pair(id, newTexture)); //Add texture to index if it isn't already there
-		} else {
-			newTexture = textureIndex[id]; //If the texture is already in the index, load the texture from there
+// Loads an element texture from the texture index and optionally returns the width and height
+SDL_Texture* loadTexture(std::string id, int* width, int* height) {
+	SDL_Texture* newTexture = NULL;
+	if (textureIndex.find(id) == textureIndex.end()) {
+		std::string textureName = Game::getTextureDir() + "elems/" + id + ".png"; //Get filename for texture
+		newTexture = IMG_LoadTexture(renderer, textureName.c_str());
+		if (newTexture == NULL) {
+			std::string dummyTexDir = Game::getTextureDir() + "elems/_dummy.png";
+			newTexture = IMG_LoadTexture(renderer, dummyTexDir.c_str());
 		}
-		SDL_QueryTexture(textureIndex[id], NULL, NULL, width, height); //Get width from textures
-		return newTexture;
+		textureIndex.insert(std::make_pair(id, newTexture)); //Add texture to index if it isn't already there
+	} else {
+		newTexture = textureIndex[id]; //If the texture is already in the index, load the texture from there
 	}
-	void spawnDraggable(std::vector<std::unique_ptr<DraggableElement>> &draggables, int x, int y, std::string name) {
-		draggables.push_back(std::make_unique<DraggableElement>(name, x, y)); //Add to list of elements
-	}
+	SDL_QueryTexture(textureIndex[id], NULL, NULL, width, height); //Get width from textures
+	return newTexture;
+}
 }

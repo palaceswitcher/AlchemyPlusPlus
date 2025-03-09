@@ -2,5 +2,5 @@
 	path = build/src/include
 	url = https://github.com/ocornut/imgui.git
 [submodule "src/include/imgui"]
-	path = src/include/imgui
+	path = include/imgui
 	url = https://github.com/ocornut/imgui.git

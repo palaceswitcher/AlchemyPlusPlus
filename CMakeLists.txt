@@ -35,15 +35,15 @@ find_package(SDL2_ttf REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS})
 
 add_library(ImGui
-    src/include/imgui/imgui.cpp
-    src/include/imgui/imgui_demo.cpp
-    src/include/imgui/imgui_draw.cpp
-    src/include/imgui/imgui_tables.cpp
-    src/include/imgui/imgui_widgets.cpp
-    src/include/imgui/misc/cpp/imgui_stdlib.cpp
-    src/include/imgui/backends/imgui_impl_sdl2.cpp
-    src/include/imgui/backends/imgui_impl_sdlrenderer2.cpp
-    src/include/imgui/backends/imgui_impl_opengl2.cpp
+    include/imgui/imgui.cpp
+    include/imgui/imgui_demo.cpp
+    include/imgui/imgui_draw.cpp
+    include/imgui/imgui_tables.cpp
+    include/imgui/imgui_widgets.cpp
+    include/imgui/misc/cpp/imgui_stdlib.cpp
+    include/imgui/backends/imgui_impl_sdl2.cpp
+    include/imgui/backends/imgui_impl_sdlrenderer2.cpp
+    include/imgui/backends/imgui_impl_opengl2.cpp
 )
 
 # Include source directories and add executable
@@ -51,15 +51,15 @@ include_directories(src/JSON)
 include_directories(src/GFX)
 include_directories(src/Game)
 include_directories(src/Misc)
-include_directories(src/Menu)
-include_directories(src/include/imgui)
-include_directories(src/include/imgui/misc/cpp)
-include_directories(src/include/imgui/backends)
+include_directories(src/UI)
+include_directories(include/imgui)
+include_directories(include/imgui/misc/cpp)
+include_directories(include/imgui/backends)
 add_subdirectory(src/JSON)
 add_subdirectory(src/GFX)
 add_subdirectory(src/Game)
 add_subdirectory(src/Misc)
-add_subdirectory(src/Menu)
+add_subdirectory(src/UI)
 
 add_executable(AlchemyPlusPlus src/main.cpp) #Main file
 
@@ -78,7 +78,7 @@ target_link_libraries(AlchemyPlusPlus JSON)
 target_link_libraries(AlchemyPlusPlus GFX)
 target_link_libraries(AlchemyPlusPlus Game)
 target_link_libraries(AlchemyPlusPlus Misc)
-target_link_libraries(AlchemyPlusPlus Menu)
+target_link_libraries(AlchemyPlusPlus UI)
 
 # Link to the actual SDL2 library. SDL2::SDL2 is the shared SDL library, SDL2::SDL2-static is the static SDL libarary.
 target_link_libraries(AlchemyPlusPlus SDL2::SDL2 SDL2_image::SDL2_image)

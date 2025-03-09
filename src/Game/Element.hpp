@@ -1,3 +1,5 @@
+#ifndef ELEMENT_HPP_
+#define ELEMENT_HPP_
 #include <stdbool.h>
 #include <vector>
 #include <string>
@@ -7,8 +9,6 @@
 #include "SDL_FontCache.h"
 #include "Sprite.hpp"
 #include "IO.hpp"
-#ifndef ELEMENT_HPP_ //Include guard
-#define ELEMENT_HPP_
 
 #define ELEM_SIZE 32
 
@@ -22,14 +22,13 @@ public:
 	int z = 0; //Z-index
 	bool queuedForDeletion = false;
 
-	void makeCombo(std::vector<std::unique_ptr<DraggableElement>> &draggables, std::vector<std::string> &elementsUnlocked);
+	void makeCombo(std::vector<std::string> &elementsUnlocked);
 	static void deleteElem(std::vector<std::unique_ptr<DraggableElement>> &draggables, DraggableElement* elem);
 };
 
-namespace elem {
+namespace Board {
 	extern std::unordered_map<std::string, SDL_Texture*> textureIndex;
 	SDL_Texture* loadTexture(std::string id, int* width, int* height);
-	void spawnDraggable(std::vector<std::unique_ptr<DraggableElement>> &draggables, int x, int y, std::string name);
 }
 
 #endif
