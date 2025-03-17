@@ -1,10 +1,10 @@
 add_library (Game
-  GameHandler.cpp
-  Board.cpp
-  Sprite.cpp
-  Element.cpp)
+	GameHandler.cpp
+	Board.cpp
+	Sprite.cpp
+	Element.cpp)
 
-target_link_libraries(Game PRIVATE JSON)
+target_link_libraries(Game PRIVATE glaze::glaze)
 target_link_libraries(Game PRIVATE UI)
 
 install(TARGETS Game DESTINATION bin)

@@ -10,7 +10,7 @@ namespace Board {
  * @param y Y position
  * @param id Element id
  */
-void spawnDraggable(int x, int y, std::string id);
+void spawnDraggable(int x, int y, int id);
 
 std::vector<std::unique_ptr<DraggableElement>>* getDraggableElems();
 

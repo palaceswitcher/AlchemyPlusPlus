@@ -4,3 +4,6 @@
 [submodule "src/include/imgui"]
 	path = include/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "include/glaze"]
+	path = include/glaze
+	url = https://github.com/stephenberry/glaze

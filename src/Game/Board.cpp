@@ -6,7 +6,7 @@
 
 std::vector<std::unique_ptr<DraggableElement>> draggableElems; //List of draggable elements on screen
 
-void Board::spawnDraggable(int x, int y, std::string id) {
+void Board::spawnDraggable(int x, int y, int id) {
 	draggableElems.push_back(std::make_unique<DraggableElement>(id, x, y)); //Add to list of elements
 }
 

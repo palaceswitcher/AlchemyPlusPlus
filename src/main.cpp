@@ -25,7 +25,6 @@
 #include "Sprite.hpp"
 #include "Animation.hpp"
 #include "SDL_FontCache.h"
-#include "Lang.hpp"
 
 #if !SDL_VERSION_ATLEAST(2,0,17)
 #error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
@@ -57,7 +56,7 @@ int main(int argc, char* argv[])
 	}
 	SDL_SetWindowMinimumSize(window, 640, 480);
 
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
 	if (renderer == NULL) {
 		fprintf(stderr, "SDL_CreateRenderer Error: %s\n", SDL_GetError());
 		if (window != NULL) {
@@ -71,7 +70,6 @@ int main(int argc, char* argv[])
 	if (!Game::loadGameData("default")) {
 		std::cerr << "ERROR: Game data \"" << "default" << "\" is missing or malformed.\n";
 	}
-	Text::loadAll("en-us"); //Load game text
 
 	// Set up ImGui
 	IMGUI_CHECKVERSION();
@@ -107,13 +105,13 @@ int main(int argc, char* argv[])
 	// Game loop init
 	std::vector<std::string> elementsUnlocked = {"air", "earth", "fire", "water"}; //Every element the user has unlocked
 	SDL_Rect addButtonRect = {DEFAULT_WIDTH/2-32, DEFAULT_HEIGHT-80, 64, 64};
-	Sprite addButton = {&addButtonRect, addButtonTex, ANIM_NONE, 1.0}; //Element add button
+	Sprite addButton = {addButtonRect, addButtonTex, ANIM_NONE, 1.0f}; //Element add button
 
 	// Spawn default elements
-	Board::spawnDraggable(DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, "air");
-	Board::spawnDraggable(DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2-56, "earth");
-	Board::spawnDraggable(DEFAULT_WIDTH/2-56, DEFAULT_HEIGHT/2-16, "fire");
-	Board::spawnDraggable(DEFAULT_WIDTH/2+24, DEFAULT_HEIGHT/2-16, "water");
+	Board::spawnDraggable(DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, Game::getElementNumId("air"));
+	Board::spawnDraggable(DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2-56, Game::getElementNumId("earth"));
+	Board::spawnDraggable(DEFAULT_WIDTH/2-56, DEFAULT_HEIGHT/2-16, Game::getElementNumId("fire"));
+	Board::spawnDraggable(DEFAULT_WIDTH/2+24, DEFAULT_HEIGHT/2-16, Game::getElementNumId("water"));
 
 	DraggableElement* selectedElem = NULL; //Currently selected draggable
 
@@ -147,8 +145,8 @@ int main(int argc, char* argv[])
 				case SDL_MOUSEMOTION: {
 					mousePos = {e.motion.x, e.motion.y}; //Get mouse position
 					if (leftClickDown && selectedElem != NULL) {
-						selectedElem->box->x = mousePos.x - clickOffset.x;
-						selectedElem->box->y = mousePos.y - clickOffset.y; //Update rectangle position while its being dragged
+						selectedElem->box.x = mousePos.x - clickOffset.x;
+						selectedElem->box.y = mousePos.y - clickOffset.y; //Update rectangle position while its being dragged
 					}
 					break;
 				}
@@ -159,7 +157,7 @@ int main(int argc, char* argv[])
 						if (selectedElem != NULL) {
 							selectedElem->z++; //Move behind
 							selectedElem->makeCombo(elementsUnlocked); //See if combination was made with another element
-							deleteNeeded = selectedElem->queuedForDeletion = (selectedElem->box->x >= winWidth || selectedElem->box->y >= winHeight); //Delete element if it goes off-screen
+							deleteNeeded = selectedElem->queuedForDeletion = (selectedElem->box.x >= winWidth || selectedElem->box.y >= winHeight); //Delete element if it goes off-screen
 						}
 						selectedElem = NULL; //Release selected rectangle when left is released
 						zSortNeeded = true; //Re-sort Z-index after element was dropped
@@ -180,12 +178,12 @@ int main(int argc, char* argv[])
 					std::vector<DraggableElement*> clickMatches; //Every element that the cursor clicked on
 					if (selectedElem == NULL) {
 						// Check if circle around the add button is clicked
-						if (((mousePos.x-(addButton.box->x+32))*(mousePos.x-(addButton.box->x+32)) + (mousePos.y-(addButton.box->y+32))*(mousePos.y-(addButton.box->y+32))) < 32*32) {
+						if (((mousePos.x-(addButton.box.x+32))*(mousePos.x-(addButton.box.x+32)) + (mousePos.y-(addButton.box.y+32))*(mousePos.y-(addButton.box.y+32))) < 32*32) {
 							addButtonClicked = true;
 							UI::openElementMenu();
 						} else {
 							for (auto& d : *(Board::getDraggableElems())) {
-								if (!d->queuedForDeletion && SDL_PointInRect(&mousePos, d->box)) {
+								if (!d->queuedForDeletion && SDL_PointInRect(&mousePos, &d->box)) {
 									clickMatches.push_back(d.get());
 								}
 							}
@@ -204,24 +202,24 @@ int main(int argc, char* argv[])
 						leftClickDown = true;
 						if (selectedElem == NULL) {
 							if (!clickMatches.empty()) {
-								clickOffset.x = mousePos.x - selectedElem->box->x;
-								clickOffset.y = mousePos.y - selectedElem->box->y; //Get clicked point in element box relative to its boundary
+								clickOffset.x = mousePos.x - selectedElem->box.x;
+								clickOffset.y = mousePos.y - selectedElem->box.y; //Get clicked point in element box relative to its boundary
 							}
 						} else {
-							clickOffset.x = mousePos.x - selectedElem->box->x;
-							clickOffset.y = mousePos.y - selectedElem->box->y; //Don't look for a new element to select if one is already selected
+							clickOffset.x = mousePos.x - selectedElem->box.x;
+							clickOffset.y = mousePos.y - selectedElem->box.y; //Don't look for a new element to select if one is already selected
 						}
 						// Spawn new elements on double click
 						if (SDL_GetTicks64() > leftClickTick && SDL_GetTicks64() <= leftClickTick + 250) { //Double clicks have to be within 1/4 second of each other
 							if (selectedElem == NULL) {
-								Board::spawnDraggable(mousePos.x, mousePos.y+40, "air");
-								Board::spawnDraggable(mousePos.x, mousePos.y-40, "earth");
-								Board::spawnDraggable(mousePos.x-40, mousePos.y, "fire");
-								Board::spawnDraggable(mousePos.x+40, mousePos.y, "water");
+								Board::spawnDraggable(mousePos.x, mousePos.y+40, Game::getElementNumId("air"));
+								Board::spawnDraggable(mousePos.x, mousePos.y-40, Game::getElementNumId("earth"));
+								Board::spawnDraggable(mousePos.x-40, mousePos.y, Game::getElementNumId("fire"));
+								Board::spawnDraggable(mousePos.x+40, mousePos.y, Game::getElementNumId("water"));
 							} else {
-								int hSpawnOffset = ((selectedElem->box->x + selectedElem->box->w/2) > mousePos.x) ? -40 : 40;
-								int vSpawnOffset = ((selectedElem->box->y + selectedElem->box->h/2) > mousePos.y) ? -40 : 40; //Duplicate the element to the corner it was clicked
-								Board::spawnDraggable(selectedElem->box->x+hSpawnOffset, selectedElem->box->y+vSpawnOffset, selectedElem->id); //Duplicate element if it's double clicked
+								int hSpawnOffset = ((selectedElem->box.x + selectedElem->box.w/2) > mousePos.x) ? -40 : 40;
+								int vSpawnOffset = ((selectedElem->box.y + selectedElem->box.h/2) > mousePos.y) ? -40 : 40; //Duplicate the element to the corner it was clicked
+								Board::spawnDraggable(selectedElem->box.x+hSpawnOffset, selectedElem->box.y+vSpawnOffset, selectedElem->id); //Duplicate element if it's double clicked
 							}
 						}
 						leftClickTick = SDL_GetTicks64(); //Get next click tick
@@ -243,8 +241,8 @@ int main(int argc, char* argv[])
 					addButtonRect = {winWidth/2-32, winHeight-80, 64, 64}; //Position add button to the center of the screen
 					// Adjust draggable elements relative to their previous position
 					for (auto& d : *(Board::getDraggableElems())) {
-						d->box->x = round(d->box->x * (double)winWidth/prevWinWidth);
-						d->box->y = round(d->box->y * (double)winHeight/prevWinHeight);
+						d->box.x = round(d->box.x * (double)winWidth/prevWinWidth);
+						d->box.y = round(d->box.y * (double)winHeight/prevWinHeight);
 					}
 				}
 			}
@@ -293,7 +291,7 @@ int main(int argc, char* argv[])
 
 		if (true) {
 			SDL_RenderCopy(renderer, tex, NULL, NULL); //Render background
-			SDL_RenderCopy(renderer, addButton.texture, NULL, addButton.box); //Render add button
+			SDL_RenderCopy(renderer, addButton.texture, NULL, &addButton.box); //Render add button
 	
 			//Render text
 			FC_Draw(font, renderer, 0, 0, "Alchemy++ alpha v0.3"); //Version text
@@ -302,19 +300,19 @@ int main(int argc, char* argv[])
 			// Render every draggable element
 			for (auto& d : *(Board::getDraggableElems())) {
 				if ((int)d->scale != 1) {
-					SDL_Rect* scaledRect = anim::applyScale(d.get()); //Get scaled rect
-					SDL_RenderCopy(renderer, d->texture, NULL, scaledRect);
-					free(scaledRect); //Free it to avoid leak
+					SDL_Rect scaledRect = anim::applyScale(d.get()); //Get scaled rect
+					SDL_RenderCopy(renderer, d->texture, NULL, &scaledRect);
 				} else {
-					SDL_RenderCopy(renderer, d->texture, NULL, d->box);
+					SDL_RenderCopy(renderer, d->texture, NULL, &(d->box));
 				}
 	
-				float textWidth = FC_GetWidth(font, d->name.c_str());
-				float textHeight = FC_GetHeight(font, d->name.c_str());
+				std::string elemName = Game::getElementName(d->id);
+				float textWidth = FC_GetWidth(font, elemName.c_str());
+				float textHeight = FC_GetHeight(font, elemName.c_str());
 				FC_DrawScale(font, renderer,
-					(d->box->x + (d->box->w - textWidth)/2) + (textWidth - textWidth * d->scale)/2, //Text X position
-					(d->box->y + d->box->w) + (textHeight - textHeight * d->scale)+2, //Text Y position
-					{d->scale, d->scale}, d->name.c_str());
+					(d->box.x + (d->box.w - textWidth)/2) + (textWidth - textWidth * d->scale)/2, //Text X position
+					(d->box.y + d->box.h) + (textHeight - textHeight * d->scale)+2, //Text Y position
+					{d->scale, d->scale}, elemName.c_str());
 			}
 		}
 

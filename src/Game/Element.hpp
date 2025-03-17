@@ -5,7 +5,6 @@
 #include <string>
 #include <unordered_map>
 #include <memory>
-#include "cJSON.h"
 #include "SDL_FontCache.h"
 #include "Sprite.hpp"
 #include "IO.hpp"
@@ -14,21 +13,18 @@
 
 class DraggableElement : public Sprite {
 public:
-	DraggableElement() : Sprite({NULL, NULL, ANIM_NONE, 1.0}) {};
-	DraggableElement(std::string elemID, int mX, int mY);
-	~DraggableElement();
-	std::string id;
-	std::string name; //Displayed name of the element
+	DraggableElement() : Sprite({{}, nullptr, ANIM_NONE, 1.0f}) {};
+	DraggableElement(int elemId, int mX, int mY);
+	int id;
 	int z = 0; //Z-index
 	bool queuedForDeletion = false;
 
 	void makeCombo(std::vector<std::string> &elementsUnlocked);
-	static void deleteElem(std::vector<std::unique_ptr<DraggableElement>> &draggables, DraggableElement* elem);
 };
 
 namespace Board {
-	extern std::unordered_map<std::string, SDL_Texture*> textureIndex;
-	SDL_Texture* loadTexture(std::string id, int* width, int* height);
+	extern std::unordered_map<int, SDL_Texture*> textureIndex;
+	SDL_Texture* loadTexture(int id, int* width, int* height);
 }
 
 #endif

@@ -8,7 +8,7 @@
 
 namespace anim {
 	extern bool animInProgress;
-	SDL_Rect* applyScale(Sprite* spr);
+	SDL_Rect applyScale(Sprite* spr);
 	void animateShrink(Sprite* spr, double deltaTime);
 	void animateGrow(Sprite* spr, double deltaTime);
 }

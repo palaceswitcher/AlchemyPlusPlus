@@ -1,7 +1,6 @@
 #include <SDL2/SDL.h>
 #include <iostream>
-#include <stdlib.h>
-#include <stdbool.h>
+#include <cstdlib>
 #include <string>
 #include <vector>
 #include <unordered_map>
@@ -12,113 +11,104 @@
 #include "GameHandler.hpp"
 #include "Animation.hpp"
 #include "SDL_FontCache.h"
-#include "cJSON.h"
 #include "IO.hpp"
-#include "Lang.hpp"
 #include "Board.hpp"
 
 // Constructor
-DraggableElement::DraggableElement(std::string elemID, int mX, int mY) {
-	SDL_Rect* newElemBox = (SDL_Rect*) malloc(sizeof(struct SDL_Rect)); //Allocate space for new element's rectangle
+DraggableElement::DraggableElement(int elemId, int mX, int mY) {
+	SDL_Rect newElemBox;
 
-	box = newElemBox; //Add box to new element
-	newElemBox->x = mX;
-	newElemBox->y = mY; //Position element's rectangle
+	int w, h;
+	texture = Board::loadTexture(elemId, &w, &h); //Get texture
+
+	box = {mX, mY, w, h}; //Add box to new element
+	newElemBox.x = mX;
+	newElemBox.y = mY; //Position element's rectangle
 
 	z = 1;
-	id = elemID; //Get numerical ID
+	id = elemId;
 
 	scale = 0.0;
 	anim = ANIM_GROW; //Make element grow on spawn
-	name = Text::getElemName(elemID);
-
-	texture = Board::loadTexture(id, &(newElemBox->w), &(newElemBox->h)); //Get texture
 
 	anim::animInProgress = true; //Start animations
-}
-
-DraggableElement::~DraggableElement() {
-	free(this->box);
 }
 
 // Checks if two elements are colliding and combines them if possible
 void DraggableElement::makeCombo(std::vector<std::string> &elementsUnlocked) {
 	std::vector<std::unique_ptr<DraggableElement>>* draggableElems = Board::getDraggableElems();
-	DraggableElement* matchingElem; //The element successfully merged with
-	bool comboMade = false; //This indicates if a valid combination was made and allows the function to unlock that element
 
-	cJSON* elemJSON = cJSON_GetObjectItem(Game::getComboData(), this->id.c_str());
-	cJSON* elemCombos = cJSON_GetObjectItem(elemJSON, "combos"); //Get combinations for first selected element
-	if (elemCombos == NULL) { return; }
-	int startY = this->box->y;
+	auto comboData = Game::getComboData(this->id); //Get combinations for first selected element
+	//if (comboData->empty()) { return; }
 
 	std::vector<DraggableElement*> collidedElements; //A list of every element this could match with
+	std::vector<int> collidedElemIds; //A list of every element this could match with
 	for (auto &d : *draggableElems) {
-		if (d.get() != this && SDL_HasIntersection(this->box, d->box) == SDL_TRUE) {
-			comboMade = (cJSON_GetObjectItem(elemCombos, d->id.c_str()) != NULL); //Check if combination is valid (TODO REMOVE OR FIX ID SYSTEM, IT'S CURRENTLY A WASTE)
-			if (comboMade) { collidedElements.push_back(d.get()); }
+		if (d.get() != this && SDL_HasIntersection(&this->box, &d->box) == SDL_TRUE) {
+			collidedElements.push_back(d.get());
+			collidedElemIds.push_back(d->id);
 		}
 	}
-	if (!collidedElements.empty()) {
-		std::stable_sort(collidedElements.begin(), collidedElements.end(), [this]
-		(DraggableElement* d1, DraggableElement* d2) {
-			SDL_Rect* d1Intersect; SDL_IntersectRect(this->box, d1->box, d1Intersect);
-			SDL_Rect* d2Intersect; SDL_IntersectRect(this->box, d2->box, d2Intersect); //The intersecting rectangles between the combined elements. The combination with the largest intersection area will be the combined element
-			return d1->z > d2->z && (d1Intersect->x * d1Intersect->y) > (d2Intersect->x * d2Intersect->y);
-		});
-		matchingElem = collidedElements.back(); //Match with the element with the lowest Z-index
-	}
 
-	if (comboMade) {
-		cJSON* results = cJSON_GetObjectItem(elemCombos, matchingElem->id.c_str());
-		// Add result elements to unlocked elements
-		std::vector<std::string> newElemNames; //Numerical IDs of resultant elements
-		int numResults = 0; //Count the number of results for later
-		cJSON* iterator = NULL; //Initialize iterator object
-		cJSON_ArrayForEach(iterator, results) {
-			numResults++;
-			if (cJSON_IsString(iterator)) {
-				std::string newElemID = iterator->valuestring; //Get numerical ID for new element
-				std::cout << "Resultant Element: " << iterator->valuestring << std::endl;
-				if (std::find(elementsUnlocked.begin(), elementsUnlocked.end(), newElemID) == elementsUnlocked.end()) {
-					elementsUnlocked.push_back(newElemID); //Add resulting element to list of unlocked elements if it's new
-				}
-				newElemNames.push_back(iterator->valuestring); //Add to list of new elements
+	if (!collidedElemIds.empty()) {
+		std::sort(collidedElemIds.begin(), collidedElemIds.end(), []
+		(int d1, int d2) {
+			return d1 < d2;
+		});
+		if (collidedElemIds.size() > 10) {
+			collidedElemIds = {collidedElemIds.begin(), collidedElemIds.begin()+10};
+		}
+		/*std::sort(collidedElements.begin(), collidedElements.end(), []
+		(DraggableElement* d1, DraggableElement* d2) {
+			return d1->id < d2->id;
+		})*/;
+
+		std::vector<int> resultElems;
+		std::vector<DraggableElement*> matchingElems;
+		for (auto& combo : *comboData) {
+			if (std::includes(collidedElemIds.begin(), collidedElemIds.begin()+combo.first.size(), //Only check for elements with the highest z-index
+							combo.first.begin(), combo.first.end())) {
+				resultElems = combo.second;
+				//int ind = std::distance(collidedElemIds.begin(),
+				//		std::find(collidedElemIds.begin(), collidedElemIds.end(), combo.first[0])); //Find starting point of 
+				matchingElems = {collidedElements.begin(), collidedElements.begin()+combo.first.size()};
+				break;
 			}
 		}
 
-		//Position new elements on-screen
-		for (int i = 0; i < numResults; i++) {
-			int lowerElemXPos = this->box->x;
-			int lowerElemYPos = this->box->y;
-			if (this->box->x > matchingElem->box->x) lowerElemXPos = matchingElem->box->x;
-			if (this->box->y > matchingElem->box->y) lowerElemYPos = matchingElem->box->y; //Offset by the elements with the lower X and Y positions
-			int newX = lowerElemXPos + ((i+1) * (this->box->x - matchingElem->box->x) / (numResults+1));
-			int newY = lowerElemYPos + ((i+1) * (this->box->y - matchingElem->box->y) / (numResults+1)); //Position new elements between new elements
-			Board::spawnDraggable(newX, newY, newElemNames[i]); //Add elements to screen
-		}
+		// Position new elements on-screen
+		if (!resultElems.empty()) {
+			std::vector<int> matchingElemXs = {this->box.x};
+			std::vector<int> matchingElemYs = {this->box.y};
+			this->anim = ANIM_SHRINK; //Begin shrinking this element to despawn it
+			for (auto result : matchingElems) {
+				result->anim = ANIM_SHRINK; //Shrink all matching elements involved in the combination until they despawn
+				matchingElemXs.push_back(result->box.x);
+				matchingElemYs.push_back(result->box.y);
+			}
+			anim::animInProgress = true; //Start animations
 
-		// Queue combined elements to start despawning
-		this->anim = ANIM_SHRINK;
-		matchingElem->anim = ANIM_SHRINK;
-		anim::animInProgress = true; //Start animations
+			int minX = *std::min_element(matchingElemXs.begin(), matchingElemXs.end());
+			int minY = *std::min_element(matchingElemYs.begin(), matchingElemYs.end());
+			int maxX = *std::max_element(matchingElemXs.begin(), matchingElemXs.end());
+			int maxY = *std::max_element(matchingElemYs.begin(), matchingElemYs.end());
+			for (int i = 0; i < resultElems.size(); i++) {
+				int newX = minX + ((i+1) * (maxX-minX) / (resultElems.size()+1)); //TODO POSITION THEM SO THEY CANNOT OVERLAP
+				int newY = minY + ((i+1) * (maxY-minY) / (resultElems.size()+1)); //Position new elements between the combined elements
+				Board::spawnDraggable(newX, newY, resultElems[i]); //Add elements to screen
+			}
+		}
 	}
 }
 
-void DraggableElement::deleteElem(std::vector<std::unique_ptr<DraggableElement>> &draggableElems, DraggableElement* elem) {
-	draggableElems.erase(std::remove_if(draggableElems.begin(), draggableElems.end(), [&](std::unique_ptr<DraggableElement> &e) {
-		return (e.get() == elem);
-	}));
-}
-
 namespace Board {
-std::unordered_map<std::string, SDL_Texture*> textureIndex;
+std::unordered_map<int, SDL_Texture*> textureIndex;
 
 // Loads an element texture from the texture index and optionally returns the width and height
-SDL_Texture* loadTexture(std::string id, int* width, int* height) {
+SDL_Texture* loadTexture(int id, int* width, int* height) {
 	SDL_Texture* newTexture = NULL;
-	if (textureIndex.find(id) == textureIndex.end()) {
-		std::string textureName = Game::getTextureDir() + "elems/" + id + ".png"; //Get filename for texture
+	if (!textureIndex.contains(id)) {
+		std::string textureName = Game::getTextureDir() + "elems/" + Game::getElementStrId(id) + ".png"; //Get filename for texture
 		newTexture = IMG_LoadTexture(renderer, textureName.c_str());
 		if (newTexture == NULL) {
 			std::string dummyTexDir = Game::getTextureDir() + "elems/_dummy.png";

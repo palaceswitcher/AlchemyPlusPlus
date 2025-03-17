@@ -8,13 +8,11 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include "cJSON.h"
-#include "Lang.hpp"
 #include "GameHandler.hpp"
 #include "ElementMenu.hpp"
 #include "Animation.hpp"
 
-std::string elementMenuInputBuf; //Element menu text box string
+std::string elementMenuInputBuf; //Element menu search string
 std::vector<std::string> matchingElemIDs; //Any elements matching the search query
 int elementMenuSpawnCount; //Number of elements spawned in the element menu. Used to determine where an element should be placed
 std::unordered_map<std::string, int> elementMenuSelectCounts; //The amount of times each element was selected in the element menu
@@ -29,10 +27,9 @@ std::vector<std::string> getElemSearchResults(std::string query, std::vector<std
 	std::vector<std::string> matchingElementIDs; //String IDs of every element that matches the query
 	std::copy_if(elementsUnlocked.begin(), elementsUnlocked.end(), std::back_inserter(matchingElementIDs), [query]
 	(std::string const& s) {
-		std::string name = Text::getElemName(s);
+		std::string name = Game::getElementName(s);
 		return name.size() > 0 && name.find(query) != std::string::npos;
 	});
-	if (matchingElementIDs.empty()) { matchingElementIDs.push_back(""); }
 	return matchingElementIDs;
 }
 
@@ -42,17 +39,21 @@ void UI::renderElemMenu(std::vector<std::string> elementsUnlocked) {
 	float winHeight = ImGui::GetWindowHeight();
 	if (elementMenuOpen) {
 		int columnCount = (int)(ImGui::GetWindowWidth() / 64);
-		int rowCount = round((float)elementsUnlocked.size() / columnCount); //Get column and row count
 		//ImLerp(255.0f, 0.0f, (ImGui::GetTime() - start_time) / duration_seconds)
 		ImGui::SetNextWindowFocus();
 		ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImGui::SetNextWindowSize(viewport->WorkSize, ImGuiCond_Always);
 		ImGui::SetNextWindowPos(viewport->WorkPos, ImGuiCond_Always); //Center window
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(15,15,15,255)); //Set color of background
+
+		// Style selectables
+		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(15,15,15,255)); 
 		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(63,63,63,255));
 		ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(95,95,95,255));
-		ImGui::Begin("Add Element", &elementMenuOpen, ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoResize); //Style selectables
-		if (ImGui::InputTextWithHint("##elementMenuSearchBox", "Element", &elementMenuInputBuf, ImGuiInputTextFlags_CallbackEdit)) {
+
+		ImGui::Begin("Add Element", &elementMenuOpen, ImGuiWindowFlags_NoCollapse|ImGuiWindowFlags_NoResize);
+
+		// Search box
+		if (ImGui::InputTextWithHint("##elementMenuSearchBox", "Element", &elementMenuInputBuf) || matchingElemIDs.empty()) {
 			matchingElemIDs = getElemSearchResults(elementMenuInputBuf, elementsUnlocked);
 		}
 		// Create map of selection counts for each unlocked element if needed
@@ -66,7 +67,7 @@ void UI::renderElemMenu(std::vector<std::string> elementsUnlocked) {
 			int colCount = floor(winWidth / elemBoxSize);
 			for (int i = 0; i < matchingElemIDs.size(); i++) {
 				if (i % colCount != 0) { ImGui::SameLine(); }
-				std::string elemName = Text::getElemName(matchingElemIDs[i]);
+				std::string elemName = Game::getElementName(matchingElemIDs[i]);
 				ImGui::PushID(i);
 				ImVec2 pos = ImGui::GetCursorPos(); //Get position of selectable box so items can be placed on it
 				if (ImGui::Selectable("##", false, ImGuiSelectableFlags_None, ImVec2(elemBoxSize, elemBoxSize))) {
@@ -102,13 +103,13 @@ void UI::renderElemMenu(std::vector<std::string> elementsUnlocked) {
 				auto afterPos = ImGui::GetCursorPos();
 				ImGui::PopID();
 				int elemW, elemH;
-				SDL_Texture* elemTex = Board::loadTexture(matchingElemIDs[i], &elemW, &elemH); //Load texture and its dimensions
+				SDL_Texture* elemTex = Board::loadTexture(Game::getElementNumId(matchingElemIDs[i]), &elemW, &elemH); //Load texture and its dimensions
 				ImVec2 min = ImGui::GetItemRectMin();
 				ImVec2 max = ImGui::GetItemRectMax();
 				ImVec2 center = ImVec2(min.x + ceil((max.x - min.x - elemW) * 0.5f), min.y + (elemBoxSize * 0.125f));
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
 				// Draw icon
-				drawList->AddImage((ImTextureID)(intptr_t) Board::textureIndex[matchingElemIDs[i]], center, ImVec2(center.x + elemW, center.y + elemH));
+				drawList->AddImage((ImTextureID)(intptr_t) Board::textureIndex[Game::getElementNumId(matchingElemIDs[i])], center, ImVec2(center.x + elemW, center.y + elemH));
 				// Draw spawn count
 				std::string spawnCountTxt = std::to_string(elementMenuSelectCounts[matchingElemIDs[i]]);
 				ImVec2 textSize = ImGui::CalcTextSize(spawnCountTxt.c_str(), nullptr, false, elemBoxSize);
@@ -135,10 +136,11 @@ void UI::renderElemMenu(std::vector<std::string> elementsUnlocked) {
 	} else {
 		for (auto &pair : elementMenuSelectCounts) {
 			for (int i = 0; i < pair.second; i++) {
-				Board::spawnDraggable(288, 208, pair.first);
+				Board::spawnDraggable(288, 208, Game::getElementNumId(pair.first));
 			}
 		}
 		elementMenuSpawnCount = 0; //Reset spawned element count when the element menu is closed
+		matchingElemIDs.clear();
 		elementMenuSelectCounts.clear(); //Clear element selection counter
 	}
 }
