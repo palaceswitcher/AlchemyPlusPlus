@@ -5,10 +5,52 @@ import typing
 import sys
 import os
 
+# Set to True if your terminal does not support ANSI formatting codes
+DISABLE_ANSI_CODES = False
+
+# Text formatting
+if DISABLE_ANSI_CODES:
+	TXT_FORMAT_END = ""
+	TXT_BOLD = ""
+	TXT_GREEN = ""
+	TXT_BLUE = ""
+else:
+	TXT_FORMAT_END = "\033[0m"
+	TXT_BOLD = "\033[1m"
+	TXT_GREEN = "\033[0;32m"
+	TXT_BLUE = "\033[0;34m"
+
 # OS checking
 clear_cmd = "clear" #Default UNIX clear command
 if os.name == "nt":
 	clear_cmd = "cls" #Windows clear command
+
+HELP_MENU = f"""A combination can be added to the selected element by entering two comma-separated lists for the recipe elements and the results. Any recipe elements or result elements that do not exist will be added automatically. Additionally, recipes with only one other element will also add the opposite combination to the recipe element.
+
+The example below adds a combination with fire and water that results in the elements "vent" and "geyser".
+Example:
+  fire,water vent,geyser
+The resulting combination here is "<cur_elem> + fire + water = geyser, vent".
+
+{TXT_BOLD}Commands:{TXT_FORMAT_END}
+ {TXT_GREEN}-e, --element {TXT_BLUE}id{TXT_FORMAT_END}
+ Selects element, asks for element id if no argument given
+    Example: -e water
+
+ {TXT_GREEN}-r, --remove {TXT_BLUE}c1,c2..{TXT_FORMAT_END}
+ Remove combination from currently selected element
+    Example: -r fire,fire
+
+ {TXT_GREEN}-d, --delete {TXT_BLUE}e1,e2..{TXT_FORMAT_END}
+ Delete element(s)
+    Example: -d lead,algae
+
+ {TXT_GREEN}-s {TXT_BLUE}path{TXT_FORMAT_END}
+ Save changes to file, optionally to a new file if a parameter is provided
+
+ {TXT_GREEN}-x, --exit{TXT_FORMAT_END}
+ Exit script
+Press enter to exit this menu. """
 
 # Drag and drop functionality
 try:
@@ -37,69 +79,138 @@ except ValueError as e:
 # Add element to the dictionary of element
 def add_elem(elems: dict, elem: str):
 	if elem not in elems:
-		elems.update({elem:{"combos":{}}}) #Add new element if doesn't exist
+		elems.update({elem:{"combos":[]}}) #Add new element if doesn't exist
 
-# Add combo to an element's list of combos
-def add_combo(combos: dict, elem: str, results: list[str]) -> dict:
-	combos.update({elem:results}) #Add combo to element
-	keys = list(combos.keys())
-	keys.sort()
-	sorted_combos = {i: combos[i] for i in keys} #Sort combos
-	return sorted_combos
+# Add combo to element data.
+# elem Element data
+def add_combo(element: dict, combo_elems: list[str], combo_results: list[str]) -> dict:
+	element["combos"].append({"elems":combo_elems, "results":combo_results}) #Add combo to element
+	element["combos"] = sorted(element["combos"], key=lambda e: e["elems"]) #Sort recipes
+	return element
 
+err_msg = "" #Error message to display, if applicable
+in_help_menu = False
 cur_elem_sel = "air" #Currently selected element string ID
 while True:
-	os.system(clear_cmd)
-	print("\033[1m"+cur_elem_sel.title().replace("_"," ")+" Combinations:\033[0m")
+	os.system(clear_cmd) # Clear screen
 
-	elem = combo_dict[cur_elem_sel] #Get element
-	elem_combos = elem["combos"] #Get element combos
-	for combo in elem_combos:
-		print(f"{cur_elem_sel} + {combo} = {", ".join(combo_dict[cur_elem_sel]["combos"][combo])}")
+	if in_help_menu:
+		input(HELP_MENU)
+		in_help_menu = False
+		continue
+	if cur_elem_sel not in combo_dict: add_elem(combo_dict, cur_elem_sel)
+	print(f"{TXT_BOLD}{cur_elem_sel.title().replace("_"," ")} Combinations:{TXT_FORMAT_END}")
 
-	new_elem = input("""
-Type an element and its results to add to the currently selected element.
-Commands:
-\033[0;31m-c\033[0m   Change Element Selection
-\033[0;31m-b\033[0m   Cancel Combo Creation
-\033[0;31m-r\033[0m   Remove Combo
-\033[0;31m-d\033[0m   Delete Element
-\033[0;31m-s\033[0m   Save Changes
-\033[0;31m-x\033[0m   Exit
-Element/Selection: """).strip().replace(" ","_")
-	# Change selection mode
-	if new_elem == "-x":	break
-	elif new_elem == "-b":	continue
-	elif new_elem == "-s":
-		open(filename, "w").write(json.dumps(combo_dict, sort_keys=True, indent=2))
-	elif new_elem == "-c":
-		new_elem_sel = input("Element: ").replace(" ","_")
-		try:
-			combo_dict[new_elem_sel]
-			cur_elem_sel = new_elem_sel
-		except Exception as e:
-			if input("Not a valid element! Create it (y/n)? ").strip()[0] == "y":
-				add_elem(combo_dict, new_elem_sel)
+	for i, combo in enumerate(combo_dict[cur_elem_sel]["combos"]):
+		print(f"{cur_elem_sel} + {' + '.join(combo['elems'])} = {', '.join(combo['results'])}")
+
+	print("\nType a list of comma-seperated combination elements and results, or enter -h or --help for a list of commands.\n")
+	print(err_msg, end="") #Print error message
+	err_msg = ""
+	args: list[str] = input("Element/Selection (comma separated): ").strip().split()
+
+	if len(args[0]) < 1:	continue
+	match args[0]:
+		case "":	continue
+	# Change element
+		case "-e" | "--element":
+			if len(args) < 2:
+				new_elem_sel = input("Element?: ").strip().replace(' ','_')
+				if new_elem_sel == "":	continue
+			else:
+				new_elem_sel = args[1].replace(' ', '_') #Optional parameter
+
+			try:
+				combo_dict[new_elem_sel]
 				cur_elem_sel = new_elem_sel
-	else:
-		result_elems = input("Results (comma separated)/Selection: ").replace(" ","_")
-		if result_elems == "-b" or result_elems == "":	continue #Stop if user cancels selection
-		# Remove combo
-		elif new_elem == "-r":
-			elem_combos.pop(result_elems, None)
-			combo_dict[result_elems]["combos"].pop(cur_elem_sel, None)
+			except KeyError:
+				if input("Element \""+new_elem_sel+"\" is not a valid element. Create it (y/n)? ").strip()[0] == 'y':
+					add_elem(combo_dict, new_elem_sel)
+					cur_elem_sel = new_elem_sel
+	# Delete elements
+		case "-d" | "--delete":
+			if len(args) >= 2:
+				deleted_elems = args[1].split(',')
+			else:
+				deleted_elems = input("Elements?: ").split(',')
+			for e in deleted_elems:
+				if e == cur_elem_sel:
+					cur_elem_sel = "air" #TODO GO TO PREVIOUS SELECTED ELEMENT INSTEAD
+				combo_dict.pop(e, None)
 			continue
-		# Delete entire element
-		elif new_elem == "-d":
-			if result_elems == cur_elem_sel:
-				cur_elem_sel = "air" #TODO GO TO PREVIOUS SELECTED ELEMENT INSTEAD
-			combo_dict.pop(result_elems, None)
+	# Display help menu
+		case "-h" | "--help":
+			in_help_menu = True
 			continue
-		add_elem(combo_dict, new_elem) #Add new element if doesn't exist and a command wasn't entered
-		result_elems = result_elems.strip().split(",") #Get comma-separated list of new elements
-		# Add entries for result elements
-		for res_elem in result_elems:
-			add_elem(combo_dict, res_elem)
-		elem_combos.update({new_elem:result_elems}) #Update combos for element
-		elem["combos"] = add_combo(elem_combos, new_elem, result_elems)
-		combo_dict[new_elem]["combos"] = add_combo(combo_dict[new_elem]["combos"], cur_elem_sel, result_elems) #Update combos for other element
+	# Remove combo
+		case "-r" | "--remove":
+			if len(args) >= 2:
+				combo_recipes: list[str] = args[1:] #TODO FIX THIS
+			else:
+				combo_recipes: list[str] = input("Combos?: ").split()
+			split_recipes: list[list[str]] = [x.split(',') for x in combo_recipes]
+
+			# Remove each specified combo
+			for recipe in split_recipes:
+				recipe.sort() #Sort recipe data to match how it's stored
+				print(type(recipe))
+				for i, elem_combos in enumerate(combo_dict[cur_elem_sel]["combos"]):
+					if recipe == elem_combos["elems"]:
+						combo_dict[cur_elem_sel]["combos"].pop(i)
+			# Redundantly remove if the combo only has one element
+				if len(recipe) == 1:
+					for i, elem_combos in enumerate(combo_dict[recipe[0]]["combos"]):
+						if len(elem_combos["elems"]) == 1 and elem_combos["elems"][0] == cur_elem_sel:
+							combo_dict[recipe[0]]["combos"].pop(i)
+			continue
+	# Save changes
+		case "-s" | "--save":
+			path = filename #Save current file by default
+			if len(args) >= 2:
+				path = args[1] #Optional argument to save to another file
+				filename = path #Change current file
+			open(path, 'w').write(json.dumps(combo_dict, sort_keys=True, indent='\t', separators=(',', ':')))
+	# Exit
+		case "-x" | "--exit":	break
+	# Non-command
+		case _:
+			if args[0][:1] == '-' or args[0][:2] == "--": #False command failsafe
+				err_msg = "\""+args[0]+"\" is not a valid command.\n"
+				continue
+			combo_elems: list[str] = [x.strip() for x in args[0].split(',')]
+			if len(args) < 2:
+				combo_results = input("Result(s)?: ").strip()
+				if (combo_results == ''):	continue
+			else:
+				combo_results = args[1]
+			combo_results = [x.strip() for x in combo_results.split(',')]
+			combo_elems.sort()
+			combo_results.sort()
+
+			# Add elements that don't exist
+			for combo_elem in combo_elems:
+				if combo_elem not in combo_dict:
+					add_elem(combo_dict, combo_elem)
+			for combo_res in combo_results:
+				if combo_res not in combo_dict:
+					add_elem(combo_dict, combo_res)
+
+			# Add combos
+			combo_exists = False
+			for i, combo in enumerate(combo_dict[cur_elem_sel]["combos"]):
+				if combo["elems"] == combo_elems:
+					combo_exists = True
+					combo_dict[cur_elem_sel]["combos"][i] = {"elems": combo["elems"], "results": combo_results}
+					break
+			if not combo_exists:
+				combo_dict[cur_elem_sel] = add_combo(combo_dict[cur_elem_sel], combo_elems, combo_results)
+			# Add to other combo if combo is with only one other element
+			if len(combo_elems) == 1:
+				combo_exists = False
+				for i, combo in enumerate(combo_dict[combo_elems[0]]["combos"]):
+					if combo["elems"] == [cur_elem_sel]:
+						combo_exists = True
+						combo_dict[combo_elems[0]]["combos"][i] = {"elems": combo["elems"], "results": combo_results}
+						break
+				if not combo_exists:
+					combo_dict[combo_elems[0]] = add_combo(combo_dict[combo_elems[0]], [cur_elem_sel], combo_results)
