@@ -1,4 +1,4 @@
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <iostream>
 #include <cstdlib>
 #include <string>
@@ -8,20 +8,20 @@
 #include <memory>
 #include "Element.hpp"
 #include "Sprite.hpp"
+#include "Text.hpp"
 #include "GameHandler.hpp"
 #include "Animation.hpp"
-#include "SDL_FontCache.h"
 #include "IO.hpp"
 #include "Board.hpp"
 
 // Constructor
-DraggableElement::DraggableElement(int elemId, int mX, int mY) {
+DraggableElement::DraggableElement(SDL_Renderer* ren, int elemId, int mX, int mY) {
 	SDL_Rect newElemBox;
 
-	int w, h;
-	texture = Board::loadTexture(elemId, &w, &h); //Get texture
+	float w, h;
+	texture = Board::loadTexture(ren, elemId, &w, &h); //Get texture
 
-	box = {mX, mY, w, h}; //Add box to new element
+	box = {(float)mX, (float)mY, w, h}; //Add box to new element
 	newElemBox.x = mX;
 	newElemBox.y = mY; //Position element's rectangle
 
@@ -35,7 +35,7 @@ DraggableElement::DraggableElement(int elemId, int mX, int mY) {
 }
 
 // Checks if two elements are colliding and combines them if possible
-void DraggableElement::makeCombo(std::vector<std::string> &elementsUnlocked) {
+void DraggableElement::makeCombo(SDL_Renderer* ren, std::vector<std::string> &elementsUnlocked) {
 	std::vector<std::unique_ptr<DraggableElement>>* draggableElems = Board::getDraggableElems();
 
 	auto comboData = Game::getComboData(this->id); //Get combinations for first selected element
@@ -44,7 +44,7 @@ void DraggableElement::makeCombo(std::vector<std::string> &elementsUnlocked) {
 	std::vector<DraggableElement*> collidedElements; //A list of every element this could match with
 	std::vector<int> collidedElemIds; //A list of every element this could match with
 	for (auto &d : *draggableElems) {
-		if (d.get() != this && SDL_HasIntersection(&this->box, &d->box) == SDL_TRUE) {
+		if (d.get() != this && SDL_HasRectIntersectionFloat(&this->box, &d->box) == true) {
 			collidedElements.push_back(d.get());
 			collidedElemIds.push_back(d->id);
 		}
@@ -78,8 +78,8 @@ void DraggableElement::makeCombo(std::vector<std::string> &elementsUnlocked) {
 
 		// Position new elements on-screen
 		if (!resultElems.empty()) {
-			std::vector<int> matchingElemXs = {this->box.x};
-			std::vector<int> matchingElemYs = {this->box.y};
+			std::vector<int> matchingElemXs = {(int)this->box.x};
+			std::vector<int> matchingElemYs = {(int)this->box.y};
 			this->anim = ANIM_SHRINK; //Begin shrinking this element to despawn it
 			for (auto result : matchingElems) {
 				result->anim = ANIM_SHRINK; //Shrink all matching elements involved in the combination until they despawn
@@ -95,7 +95,7 @@ void DraggableElement::makeCombo(std::vector<std::string> &elementsUnlocked) {
 			for (int i = 0; i < resultElems.size(); i++) {
 				int newX = minX + ((i+1) * (maxX-minX) / (resultElems.size()+1)); //TODO POSITION THEM SO THEY CANNOT OVERLAP
 				int newY = minY + ((i+1) * (maxY-minY) / (resultElems.size()+1)); //Position new elements between the combined elements
-				Board::spawnDraggable(newX, newY, resultElems[i]); //Add elements to screen
+				Board::spawnDraggable(ren, newX, newY, resultElems[i]); //Add elements to screen
 			}
 		}
 	}
@@ -105,20 +105,20 @@ namespace Board {
 std::unordered_map<int, SDL_Texture*> textureIndex;
 
 // Loads an element texture from the texture index and optionally returns the width and height
-SDL_Texture* loadTexture(int id, int* width, int* height) {
+SDL_Texture* loadTexture(SDL_Renderer* ren, int id, float* width, float* height) {
 	SDL_Texture* newTexture = NULL;
 	if (!textureIndex.contains(id)) {
 		std::string textureName = Game::getTextureDir() + "elems/" + Game::getElementStrId(id) + ".png"; //Get filename for texture
-		newTexture = IMG_LoadTexture(renderer, textureName.c_str());
+		newTexture = IMG_LoadTexture(ren, textureName.c_str());
 		if (newTexture == NULL) {
 			std::string dummyTexDir = Game::getTextureDir() + "elems/_dummy.png";
-			newTexture = IMG_LoadTexture(renderer, dummyTexDir.c_str());
+			newTexture = IMG_LoadTexture(ren, dummyTexDir.c_str());
 		}
-		textureIndex.insert(std::make_pair(id, newTexture)); //Add texture to index if it isn't already there
+		textureIndex.insert({id, newTexture}); //Add texture to index if it isn't already there
 	} else {
 		newTexture = textureIndex[id]; //If the texture is already in the index, load the texture from there
 	}
-	SDL_QueryTexture(textureIndex[id], NULL, NULL, width, height); //Get width from textures
+	SDL_GetTextureSize(textureIndex[id], width, height); //Get width from textures
 	return newTexture;
 }
 }

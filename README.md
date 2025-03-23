@@ -1,13 +1,13 @@
 # AlchemyPlusPlus
-AlchemyPlusPlus is an SDL2 Alchemy clone written in C++. It is heavily inspired by [Andrey "Zed" Zaikin's Alchemy](https://youtu.be/_cVWWY5Mlug) and is data-driven, meaning most content (like element combinations and names) can be added to the game without modifying the code. The majority of this game's data is stored in `.json` files, and can be easily modified with the scripts in the `script` folder.
+AlchemyPlusPlus is an SDL3 Alchemy clone written in C++. It is heavily inspired by [Andrey "Zed" Zaikin's Alchemy](https://youtu.be/_cVWWY5Mlug) and is data-driven, meaning most content (like element combinations and names) can be added to the game without modifying the code. The majority of this game's data is stored in `.json` files, and can be easily modified with the scripts in the `script` folder.
 
 # Building
 The following build instructions should work on Linux and Windows provided the appropriate dependencies are installed. For Windows, the easiest way is via MSYS2, though Visual Studio should also be able to build this.
 
 ## Dependencies
-- SDL2
-- SDL_image
-- SDL_ttf
+- SDL3
+- SDL3_image
+- SDL3_ttf
 - CMake
 
 ```

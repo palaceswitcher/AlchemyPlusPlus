@@ -1,11 +1,12 @@
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include "imgui.h"
 #include "imgui_stdlib.h"
-#include "imgui_impl_sdl2.h"
-#include "imgui_impl_sdlrenderer2.h"
+#include "imgui_impl_sdl3.h"
+#include "imgui_impl_sdlrenderer3.h"
 #include "Board.hpp"
 #include <stdlib.h>
 #include <string>
+#include <cmath>
 #include <vector>
 #include <algorithm>
 #include "GameHandler.hpp"
@@ -33,7 +34,7 @@ std::vector<std::string> getElemSearchResults(std::string query, std::vector<std
 	return matchingElementIDs;
 }
 
-void UI::renderElemMenu(std::vector<std::string> elementsUnlocked) {
+void UI::renderElemMenu(SDL_Renderer* ren, std::vector<std::string> elementsUnlocked) {
 	float elemBoxSize = 64.0f;
 	float winWidth = ImGui::GetWindowWidth();
 	float winHeight = ImGui::GetWindowHeight();
@@ -102,8 +103,8 @@ void UI::renderElemMenu(std::vector<std::string> elementsUnlocked) {
 				}
 				auto afterPos = ImGui::GetCursorPos();
 				ImGui::PopID();
-				int elemW, elemH;
-				SDL_Texture* elemTex = Board::loadTexture(Game::getElementNumId(matchingElemIDs[i]), &elemW, &elemH); //Load texture and its dimensions
+				float elemW, elemH;
+				SDL_Texture* elemTex = Board::loadTexture(ren, Game::getElementNumId(matchingElemIDs[i]), &elemW, &elemH); //Load texture and its dimensions
 				ImVec2 min = ImGui::GetItemRectMin();
 				ImVec2 max = ImGui::GetItemRectMax();
 				ImVec2 center = ImVec2(min.x + ceil((max.x - min.x - elemW) * 0.5f), min.y + (elemBoxSize * 0.125f));
@@ -136,7 +137,7 @@ void UI::renderElemMenu(std::vector<std::string> elementsUnlocked) {
 	} else {
 		for (auto &pair : elementMenuSelectCounts) {
 			for (int i = 0; i < pair.second; i++) {
-				Board::spawnDraggable(288, 208, Game::getElementNumId(pair.first));
+				Board::spawnDraggable(ren, 288, 208, Game::getElementNumId(pair.first));
 			}
 		}
 		elementMenuSpawnCount = 0; //Reset spawned element count when the element menu is closed

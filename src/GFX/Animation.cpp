@@ -1,4 +1,4 @@
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string>
@@ -7,20 +7,18 @@
 #include <cmath>
 #include "Sprite.hpp"
 #include "Element.hpp"
-#include "SDL_FontCache.h"
 #include "Animation.hpp"
 
 namespace anim {
 	bool animInProgress = false;
-	SDL_Rect applyScale(Sprite* spr) {
-		SDL_Rect centerScaledRect;
+	SDL_FRect applyScale(Sprite* spr) {
+		SDL_FRect centerScaledRect;
 		int scaledW = (spr->box.w * spr->scale);
 		int scaledH = (spr->box.h * spr->scale);
 		centerScaledRect.x = spr->box.x + ((spr->box.w - scaledW) / 2);
 		centerScaledRect.y = spr->box.y + ((spr->box.h - scaledH) / 2); //Scale relative to its center
 		centerScaledRect.w = scaledW;
 		centerScaledRect.h = scaledH;
-		//std::cout << "[REND] Rectangle " << centerScaledRect.w << "x" << centerScaledRect.h << "@ (" << centerScaledRect.x << "," << centerScaledRect.y << ")\n";
 		return centerScaledRect;
 	}
 	// Performs the shrink animation for a sprite. Is run every frame

@@ -1,9 +1,8 @@
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#include <SDL3/SDL.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include "glaze/glaze.hpp"
 #include "glaze/json.hpp"
 #include <stdlib.h>
-#include <stdbool.h>
 #include <string>
 #include <vector>
 #include <iostream>
@@ -12,10 +11,6 @@
 #include <utility>
 #include "IO.hpp"
 #include "GameHandler.hpp"
-
-// Global SDL variables
-SDL_Renderer* renderer = NULL;
-SDL_Window* window = NULL;
 
 // Directories
 const std::string GAME_DATA_DIR = "gamedata/";
@@ -30,6 +25,7 @@ std::unordered_map<std::string, int> elemKeyLookback;
 std::vector<std::string> elementStringIds; //String ID for every element in order of serialization
 std::vector<std::vector<std::pair<std::vector<int>, std::vector<int>>>> elementComboData; //Element combination data
 std::vector<std::string> elementNames; //Name of every element in order
+TTF_Font* font; //Game font (//TODO EXPAND)
 
 template <>
 struct glz::meta<ComboData> {
@@ -117,6 +113,7 @@ std::string Game::getElementName(int id) { return elementNames[id]; }
 std::string Game::getElementName(std::string id) { return elementNames[elemKeyLookback[id]]; }
 std::vector<std::string>* Game::getElementNames() { return &elementNames; }
 int Game::getElementNumId(std::string id) { return elemKeyLookback[id]; }
+TTF_Font* Game::getFont() { return font; }
 
 // Loads game data and returns true if it was loaded successfully
 bool Game::loadGameData(std::string id) {
@@ -126,5 +123,7 @@ bool Game::loadGameData(std::string id) {
 	textDir = GAME_DATA_DIR + gameID + "/lang/";
 	initComboData(GAME_DATA_DIR + gameID + "/combos.json");
 	loadElementNames("en-us");
+	std::string fontPath = fontDir+"Open-Sans.ttf";
+	font = TTF_OpenFont(fontPath.c_str(), 12.0f);
 	return true;
 }

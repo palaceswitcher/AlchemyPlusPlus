@@ -1,14 +1,11 @@
 #ifndef GAMEHANDLER_HPP_
 #define GAMEHANDLER_HPP_
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#include <SDL3/SDL.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <stdbool.h>
 #include <string>
 #include <vector>
 #include <utility>
-
-extern SDL_Renderer* renderer;
-extern SDL_Window* window;
 
 struct ComboData {
 	std::vector<std::string> elems;
@@ -33,6 +30,9 @@ std::vector<std::string>* getElementNames();
 
 // Returns the string ID of an element
 int getElementNumId(std::string id);
+
+// Returns the game's font
+TTF_Font* getFont();
 
 bool loadGameData(std::string id);
 }

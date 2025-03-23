@@ -1,7 +1,7 @@
 #ifndef ELEMENTMENU_HPP_
 #define ELEMENTMENU_HPP_
+#include <SDL3/SDL.h>
 #include "GameHandler.hpp"
-#include <stdlib.h>
 #include <string>
 #include <vector>
 
@@ -9,7 +9,7 @@
 std::vector<std::string> getElemSearchResults(std::string query, std::vector<std::string> elementsUnlocked);
 namespace UI {
 void openElementMenu();
-void renderElemMenu(std::vector<std::string> elementsUnlocked);
+void renderElemMenu(SDL_Renderer* ren, std::vector<std::string> elementsUnlocked);
 }
 
 #endif

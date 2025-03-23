@@ -1,6 +1,4 @@
-#include <SDL2/SDL.h>
-#include <stdbool.h>
-#include "SDL_FontCache.h"
+#include <SDL3/SDL.h>
 #include "Sprite.hpp"
 #include "Element.hpp"
 #ifndef ANIMATION_HPP_ //Include guard
@@ -8,7 +6,7 @@
 
 namespace anim {
 	extern bool animInProgress;
-	SDL_Rect applyScale(Sprite* spr);
+	SDL_FRect applyScale(Sprite* spr);
 	void animateShrink(Sprite* spr, double deltaTime);
 	void animateGrow(Sprite* spr, double deltaTime);
 }

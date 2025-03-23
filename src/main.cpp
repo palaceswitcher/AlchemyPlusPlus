@@ -1,11 +1,17 @@
-#define SDL2_MAIN_HANDLED
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
-#include <SDL2/SDL_ttf.h>
+#define SDL_MAIN_HANDLED
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
+#if defined(IMGUI_IMPL_OPENGL_ES2)
+#include <SDL3/SDL_opengles2.h>
+#else
+#include <SDL3/SDL_opengl.h>
+#endif
+#include <SDL3_image/SDL_image.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include "imgui.h"
 #include "imgui_stdlib.h"
-#include "imgui_impl_sdl2.h"
-#include "imgui_impl_sdlrenderer2.h"
+#include "imgui_impl_sdl3.h"
+#include "imgui_impl_sdlrenderer3.h"
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,17 +24,13 @@
 #include <memory>
 #include <unordered_map>
 #include <cmath>
+#include "Text.hpp"
 #include "GameHandler.hpp"
 #include "Element.hpp"
 #include "Board.hpp"
 #include "ElementMenu.hpp"
 #include "Sprite.hpp"
 #include "Animation.hpp"
-#include "SDL_FontCache.h"
-
-#if !SDL_VERSION_ATLEAST(2,0,17)
-#error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
-#endif
 
 #define DEFAULT_WIDTH 800
 #define DEFAULT_HEIGHT 600
@@ -39,33 +41,29 @@ int main(int argc, char* argv[])
 {
 	SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"); //Don't disable compositor.
 	// SDL Init
-	if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-		fprintf(stderr, "SDL_Init Error: %s\n", SDL_GetError());
-		return EXIT_FAILURE;
+	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
+		printf("Error: SDL_Init(): %s\n", SDL_GetError());
+		return -1;
 	}
 	// Initialize window
-	window = SDL_CreateWindow("Alchemy++ alpha v0.3", 64, 64, DEFAULT_WIDTH, DEFAULT_HEIGHT, SDL_WINDOW_SHOWN|SDL_WINDOW_RESIZABLE);
-	if (window == NULL) {
-		fprintf(stderr, "SDL_CreateWindow Error: %s\n", SDL_GetError());
-		return EXIT_FAILURE;
-	} else {
-		int imgFlags = IMG_INIT_PNG;
-		if(!(IMG_Init(imgFlags) & imgFlags)) {
-			printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
-		}
+	Uint32 window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
+	SDL_Window* window = SDL_CreateWindow("Alchemy++ alpha v0.4", DEFAULT_WIDTH, DEFAULT_HEIGHT, window_flags);
+	if (window == nullptr) {
+		std::cerr << stderr << "SDL_CreateWindow Error: " << SDL_GetError() << '\n';
+		return -1;
 	}
 	SDL_SetWindowMinimumSize(window, 640, 480);
 
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED|SDL_RENDERER_PRESENTVSYNC);
-	if (renderer == NULL) {
-		fprintf(stderr, "SDL_CreateRenderer Error: %s\n", SDL_GetError());
-		if (window != NULL) {
-			SDL_DestroyWindow(window);
-		}
-		SDL_Quit();
-		return EXIT_FAILURE;
+	SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
+	SDL_SetRenderVSync(renderer, 1);
+	if (renderer == nullptr) {
+		SDL_Log("Error: SDL_CreateRenderer(): %s\n", SDL_GetError());;
+		return -1;
 	}
+	SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+	SDL_ShowWindow(window);
 
+	TTF_Init();
 	// Load default game
 	if (!Game::loadGameData("default")) {
 		std::cerr << "ERROR: Game data \"" << "default" << "\" is missing or malformed.\n";
@@ -79,16 +77,12 @@ int main(int argc, char* argv[])
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  //Enable Gamepad Controls
 	ImGui::StyleColorsDark(); //Use dark mode by default
 	ImGui::GetStyle().WindowTitleAlign = ImVec2(0.5f, 0.5f); //Center title bars
-	ImGui_ImplSDL2_InitForSDLRenderer(window, renderer);
-	ImGui_ImplSDLRenderer2_Init(renderer); //Init for SDL renderer
+	ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
+	ImGui_ImplSDLRenderer3_Init(renderer); //Init for SDL renderer
 
 	// Load fonts
 	std::string fontPath = Game::getFontDir() + "Open-Sans.ttf"; //Get font directory
 	ImFont* guiFont = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 16.0f); //Load font in ImGui
-
-	TTF_Init();
-	FC_Font* font = FC_CreateFont();
-	FC_LoadFont(font, renderer, fontPath.c_str(), 12, FC_MakeColor(255,255,255,255), TTF_STYLE_NORMAL); // Load font in SDL2
 
 	std::string texDir = Game::getTextureDir() + "backgrounds/emptyuniverse.png";
 	SDL_Texture* tex = IMG_LoadTexture(renderer, texDir.c_str());
@@ -101,17 +95,18 @@ int main(int argc, char* argv[])
 		SDL_Quit();
 		return EXIT_FAILURE;
 	}
+	GfxResource versStringTexture = GFX::renderText(renderer, "Alchemy++ alpha v0.4", {255,255,255,255});
 
 	// Game loop init
 	std::vector<std::string> elementsUnlocked = {"air", "earth", "fire", "water"}; //Every element the user has unlocked
-	SDL_Rect addButtonRect = {DEFAULT_WIDTH/2-32, DEFAULT_HEIGHT-80, 64, 64};
+	SDL_FRect addButtonRect = {DEFAULT_WIDTH/2-32, DEFAULT_HEIGHT-80, 64, 64};
 	Sprite addButton = {addButtonRect, addButtonTex, ANIM_NONE, 1.0f}; //Element add button
 
 	// Spawn default elements
-	Board::spawnDraggable(DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, Game::getElementNumId("air"));
-	Board::spawnDraggable(DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2-56, Game::getElementNumId("earth"));
-	Board::spawnDraggable(DEFAULT_WIDTH/2-56, DEFAULT_HEIGHT/2-16, Game::getElementNumId("fire"));
-	Board::spawnDraggable(DEFAULT_WIDTH/2+24, DEFAULT_HEIGHT/2-16, Game::getElementNumId("water"));
+	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, Game::getElementNumId("air"));
+	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2-56, Game::getElementNumId("earth"));
+	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-56, DEFAULT_HEIGHT/2-16, Game::getElementNumId("fire"));
+	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2+24, DEFAULT_HEIGHT/2-16, Game::getElementNumId("water"));
 
 	DraggableElement* selectedElem = NULL; //Currently selected draggable
 
@@ -119,7 +114,7 @@ int main(int argc, char* argv[])
 	bool rightClickDown = false; //Middle click state
 	long leftClickTick = 0; //The tick when left was clicked, used to detect double clicks
 	bool addButtonClicked = false;
-	SDL_Point mousePos; //Mouse position
+	SDL_FPoint mousePos; //Mouse position
 	SDL_Point clickOffset; //Point in the element box clicked relative to its boundary
 	int winWidth, winHeight; //Window size
 
@@ -135,14 +130,13 @@ int main(int argc, char* argv[])
 
 		SDL_Event e;
 		while (SDL_PollEvent(&e)) {
-			ImGui_ImplSDL2_ProcessEvent(&e);
-			if (e.type == SDL_QUIT) {
+			if (e.type == SDL_EVENT_QUIT) {
 				quit = true;
 				break; //Close the program if X is clicked
 			}
 			if(!io.WantCaptureMouse) {
 				switch (e.type) {
-				case SDL_MOUSEMOTION: {
+				case SDL_EVENT_MOUSE_MOTION: {
 					mousePos = {e.motion.x, e.motion.y}; //Get mouse position
 					if (leftClickDown && selectedElem != NULL) {
 						selectedElem->box.x = mousePos.x - clickOffset.x;
@@ -150,13 +144,13 @@ int main(int argc, char* argv[])
 					}
 					break;
 				}
-				case SDL_MOUSEBUTTONUP: {
+				case SDL_EVENT_MOUSE_BUTTON_UP: {
 					if (leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
 						leftClickDown = false;
 
 						if (selectedElem != NULL) {
 							selectedElem->z++; //Move behind
-							selectedElem->makeCombo(elementsUnlocked); //See if combination was made with another element
+							selectedElem->makeCombo(renderer, elementsUnlocked); //See if combination was made with another element
 							deleteNeeded = selectedElem->queuedForDeletion = (selectedElem->box.x >= winWidth || selectedElem->box.y >= winHeight); //Delete element if it goes off-screen
 						}
 						selectedElem = NULL; //Release selected rectangle when left is released
@@ -173,7 +167,7 @@ int main(int argc, char* argv[])
 					}
 					break;
 				}
-				case SDL_MOUSEBUTTONDOWN: {
+				case SDL_EVENT_MOUSE_BUTTON_DOWN: {
 					// Get element clicked regardless of mouse button
 					std::vector<DraggableElement*> clickMatches; //Every element that the cursor clicked on
 					if (selectedElem == NULL) {
@@ -183,7 +177,7 @@ int main(int argc, char* argv[])
 							UI::openElementMenu();
 						} else {
 							for (auto& d : *(Board::getDraggableElems())) {
-								if (!d->queuedForDeletion && SDL_PointInRect(&mousePos, &d->box)) {
+								if (!d->queuedForDeletion && SDL_PointInRectFloat(&mousePos, &d->box)) {
 									clickMatches.push_back(d.get());
 								}
 							}
@@ -210,19 +204,19 @@ int main(int argc, char* argv[])
 							clickOffset.y = mousePos.y - selectedElem->box.y; //Don't look for a new element to select if one is already selected
 						}
 						// Spawn new elements on double click
-						if (SDL_GetTicks64() > leftClickTick && SDL_GetTicks64() <= leftClickTick + 250) { //Double clicks have to be within 1/4 second of each other
+						if (SDL_GetTicks() > leftClickTick && SDL_GetTicks() <= leftClickTick + 250) { //Double clicks have to be within 1/4 second of each other
 							if (selectedElem == NULL) {
-								Board::spawnDraggable(mousePos.x, mousePos.y+40, Game::getElementNumId("air"));
-								Board::spawnDraggable(mousePos.x, mousePos.y-40, Game::getElementNumId("earth"));
-								Board::spawnDraggable(mousePos.x-40, mousePos.y, Game::getElementNumId("fire"));
-								Board::spawnDraggable(mousePos.x+40, mousePos.y, Game::getElementNumId("water"));
+								Board::spawnDraggable(renderer, mousePos.x, mousePos.y+40, Game::getElementNumId("air"));
+								Board::spawnDraggable(renderer, mousePos.x, mousePos.y-40, Game::getElementNumId("earth"));
+								Board::spawnDraggable(renderer, mousePos.x-40, mousePos.y, Game::getElementNumId("fire"));
+								Board::spawnDraggable(renderer, mousePos.x+40, mousePos.y, Game::getElementNumId("water"));
 							} else {
 								int hSpawnOffset = ((selectedElem->box.x + selectedElem->box.w/2) > mousePos.x) ? -40 : 40;
 								int vSpawnOffset = ((selectedElem->box.y + selectedElem->box.h/2) > mousePos.y) ? -40 : 40; //Duplicate the element to the corner it was clicked
-								Board::spawnDraggable(selectedElem->box.x+hSpawnOffset, selectedElem->box.y+vSpawnOffset, selectedElem->id); //Duplicate element if it's double clicked
+								Board::spawnDraggable(renderer, selectedElem->box.x+hSpawnOffset, selectedElem->box.y+vSpawnOffset, selectedElem->id); //Duplicate element if it's double clicked
 							}
 						}
-						leftClickTick = SDL_GetTicks64(); //Get next click tick
+						leftClickTick = SDL_GetTicks(); //Get next click tick
 					}
 
 					if (!rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
@@ -233,17 +227,15 @@ int main(int argc, char* argv[])
 				}
 			}
 			// Respond to window resize
-			if (e.type == SDL_WINDOWEVENT) {
-				if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED) {
-					int prevWinWidth = winWidth;
-					int prevWinHeight = winHeight;
-					SDL_GetWindowSize(window, &winWidth, &winHeight); //Get new screen size
-					addButtonRect = {winWidth/2-32, winHeight-80, 64, 64}; //Position add button to the center of the screen
-					// Adjust draggable elements relative to their previous position
-					for (auto& d : *(Board::getDraggableElems())) {
-						d->box.x = round(d->box.x * (double)winWidth/prevWinWidth);
-						d->box.y = round(d->box.y * (double)winHeight/prevWinHeight);
-					}
+			if (e.type == SDL_EVENT_WINDOW_RESIZED) {
+				int prevWinWidth = winWidth;
+				int prevWinHeight = winHeight;
+				SDL_GetWindowSize(window, &winWidth, &winHeight); //Get new screen size
+				addButton.box = {(float)winWidth/2-32, (float)winHeight-80, 64, 64}; //Position add button to the center of the screen
+				// Adjust draggable elements relative to their previous position
+				for (auto& d : *(Board::getDraggableElems())) {
+					d->box.x = round(d->box.x * (double)winWidth/prevWinWidth);
+					d->box.y = round(d->box.y * (double)winHeight/prevWinHeight);
 				}
 			}
 		}
@@ -283,59 +275,67 @@ int main(int argc, char* argv[])
 		SDL_RenderClear(renderer);
 
 		// Start the Dear ImGui frame
-		ImGui_ImplSDLRenderer2_NewFrame();
-		ImGui_ImplSDL2_NewFrame();
+		ImGui_ImplSDLRenderer3_NewFrame();
+		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
 
-		UI::renderElemMenu(elementsUnlocked);
+		UI::renderElemMenu(renderer, elementsUnlocked);
 
-		if (true) {
-			SDL_RenderCopy(renderer, tex, NULL, NULL); //Render background
-			SDL_RenderCopy(renderer, addButton.texture, NULL, &addButton.box); //Render add button
-	
-			//Render text
-			FC_Draw(font, renderer, 0, 0, "Alchemy++ alpha v0.3"); //Version text
-			FC_Draw(font, renderer, 20, winHeight-20, "elems: %d", Board::getDraggableElems()->size()); //Element count
-	
-			// Render every draggable element
-			for (auto& d : *(Board::getDraggableElems())) {
-				if ((int)d->scale != 1) {
-					SDL_Rect scaledRect = anim::applyScale(d.get()); //Get scaled rect
-					SDL_RenderCopy(renderer, d->texture, NULL, &scaledRect);
-				} else {
-					SDL_RenderCopy(renderer, d->texture, NULL, &(d->box));
-				}
-	
-				std::string elemName = Game::getElementName(d->id);
-				float textWidth = FC_GetWidth(font, elemName.c_str());
-				float textHeight = FC_GetHeight(font, elemName.c_str());
-				FC_DrawScale(font, renderer,
-					(d->box.x + (d->box.w - textWidth)/2) + (textWidth - textWidth * d->scale)/2, //Text X position
-					(d->box.y + d->box.h) + (textHeight - textHeight * d->scale)+2, //Text Y position
-					{d->scale, d->scale}, elemName.c_str());
+		SDL_RenderTexture(renderer, tex, NULL, NULL); //Render background
+		SDL_RenderTexture(renderer, addButton.texture, NULL, &addButton.box); //Render add button
+
+		//Render text
+		SDL_FRect versStringRect = {0, 0, versStringTexture.w, versStringTexture.h};
+		SDL_RenderTexture(renderer, versStringTexture.texture, nullptr, &versStringRect);
+		//std::string fpsStr = "Elems: "+std::to_string(Board::getDraggableElems()->size());
+		//GFX::renderText(renderer, font, fpsStr, 0, winHeight-20, {255,255,255,255}); //Display element count
+
+		// Render every draggable element
+		for (auto& d : *(Board::getDraggableElems())) {
+			if ((int)d->scale != 1) {
+				SDL_FRect scaledRect = anim::applyScale(d.get()); //Get scaled rect
+				SDL_RenderTexture(renderer, d->texture, NULL, &scaledRect);
+			} else {
+				SDL_RenderTexture(renderer, d->texture, NULL, &(d->box));
 			}
+
+			std::string elemName = Game::getElementName(d->id);
+			
+			GfxResource elemNameTexture = GFX::getElemNameTexture(renderer, d->id);
+			//GfxResource elemNameTexture = GFX::renderText(renderer, elemName, {255,255,255,255});
+			SDL_FRect elemTextBox = {
+				(d->box.x + (d->box.w - elemNameTexture.w)/2) + (elemNameTexture.w - elemNameTexture.w * d->scale)/2, //Text X position
+				(d->box.y + d->box.h) + (elemNameTexture.h - elemNameTexture.h * d->scale)+2, //Text Y position
+				elemNameTexture.w, elemNameTexture.h
+			};
+			SDL_RenderTexture(renderer, elemNameTexture.texture, nullptr, &elemTextBox);
+			/*FC_DrawScale(font, renderer,
+				(d->box.x + (d->box.w - textWidth)/2) + (textWidth - textWidth * d->scale)/2, //Text X position
+				(d->box.y + d->box.h) + (textHeight - textHeight * d->scale)+2, //Text Y position
+				{d->scale, d->scale}, elemName.c_str());*/
 		}
 
-		FC_Draw(font, renderer, winWidth-170, 10, "FPS: %f", 1000/deltaTime);
+		//FC_Draw(font, renderer, winWidth-170, 10, "FPS: %f", 1000/deltaTime);
 
 		ImGui::Render(); //Render ImGui stuff
-		ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer);
+		SDL_SetRenderDrawColorFloat(renderer, 0, 0, 0, 255);
+		ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
 		SDL_RenderPresent(renderer);
+		SDL_RenderClear(renderer);
 
 		endTick = Clock::now();
 		deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(endTick - startTick).count() / 1000.0; //Get the time the frame took in ms
 	}
 
 	// Cleanup
-	ImGui_ImplSDLRenderer2_Shutdown();
-	ImGui_ImplSDL2_Shutdown();
+	ImGui_ImplSDLRenderer3_Shutdown();
+	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
 
 	SDL_DestroyTexture(tex);
 	SDL_DestroyRenderer(renderer);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
-	printf("\n"); //Break after debug messages
 
 	return EXIT_SUCCESS;
 }

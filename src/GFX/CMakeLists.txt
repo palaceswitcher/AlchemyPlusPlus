@@ -1,11 +1,11 @@
 add_library (GFX
-  Animation.hpp
-  Animation.cpp
-  SDL_FontCache.h
-  SDL_FontCache.c)
+	Animation.cpp
+	Resource.cpp
+	Text.cpp)
 
 target_link_libraries(GFX PRIVATE Game)
 
 install (TARGETS GFX DESTINATION bin)
 install (FILES Animation.hpp DESTINATION include)
-install (FILES SDL_FontCache.h DESTINATION include)
+install (FILES Resource.hpp DESTINATION include)
+install (FILES Text.hpp DESTINATION include)

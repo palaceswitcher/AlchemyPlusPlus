@@ -1,7 +1,7 @@
 #ifndef SPRITE_HPP_ //Include guard
 #define SPRITE_HPP_
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
 #include <stdbool.h>
 #include <vector>
 
@@ -16,7 +16,7 @@ enum ObjectAnimationType {
 };
 
 struct Sprite {
-	SDL_Rect box;
+	SDL_FRect box;
 	SDL_Texture* texture {NULL};
 	int anim = 0;
 	float scale = 1.0f;
