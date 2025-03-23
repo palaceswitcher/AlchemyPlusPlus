@@ -11,6 +11,7 @@ public:
 	// Creates a resource from a surface and destroys the surface
 	GfxResource(SDL_Renderer* ren, SDL_Surface* surf);
 	GfxResource() {};
+	void loadTexture(SDL_Renderer* ren, SDL_Surface* surf);
 	~GfxResource();
 };
 

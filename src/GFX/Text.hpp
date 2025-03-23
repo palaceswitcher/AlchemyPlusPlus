@@ -6,7 +6,7 @@
 #include <string>
 
 namespace GFX {
-GfxResource renderText(SDL_Renderer* ren, std::string text, SDL_Color color);
+void renderText(GfxResource& res, SDL_Renderer* ren, std::string text, SDL_Color color);
 GfxResource getElemNameTexture(SDL_Renderer* ren, int id);
 }
 

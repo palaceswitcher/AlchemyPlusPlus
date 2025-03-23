@@ -95,7 +95,10 @@ int main(int argc, char* argv[])
 		SDL_Quit();
 		return EXIT_FAILURE;
 	}
-	GfxResource versStringTexture = GFX::renderText(renderer, "Alchemy++ alpha v0.4", {255,255,255,255});
+	GfxResource fpsDisplayTexture;
+	GfxResource elemCountTexture;
+	GfxResource versStringTexture;
+	GFX::renderText(versStringTexture, renderer, "Alchemy++ alpha v0.4", {255,255,255,255});
 
 	// Game loop init
 	std::vector<std::string> elementsUnlocked = {"air", "earth", "fire", "water"}; //Every element the user has unlocked
@@ -287,8 +290,16 @@ int main(int argc, char* argv[])
 		//Render text
 		SDL_FRect versStringRect = {0, 0, versStringTexture.w, versStringTexture.h};
 		SDL_RenderTexture(renderer, versStringTexture.texture, nullptr, &versStringRect);
-		//std::string fpsStr = "Elems: "+std::to_string(Board::getDraggableElems()->size());
-		//GFX::renderText(renderer, font, fpsStr, 0, winHeight-20, {255,255,255,255}); //Display element count
+
+		std::string elemCountStr = "Elems: "+std::to_string(Board::getDraggableElems()->size());
+		GFX::renderText(elemCountTexture, renderer, elemCountStr.c_str(), {255,255,255,255});
+		SDL_FRect elemCountBox = {0, winHeight-elemCountTexture.h-12.0f, elemCountTexture.w, elemCountTexture.h};
+		SDL_RenderTexture(renderer, elemCountTexture.texture, nullptr, &elemCountBox); //Draw element count
+
+		std::string fpsStr = "FPS: "+std::to_string(1000/deltaTime);
+		GFX::renderText(fpsDisplayTexture, renderer, fpsStr.c_str(), {255,255,255,255});
+		SDL_FRect fpsStringBox = {0, winHeight-fpsDisplayTexture.h, fpsDisplayTexture.w, fpsDisplayTexture.h};
+		SDL_RenderTexture(renderer, fpsDisplayTexture.texture, nullptr, &fpsStringBox); //Draw fps display
 
 		// Render every draggable element
 		for (auto& d : *(Board::getDraggableElems())) {
@@ -302,20 +313,13 @@ int main(int argc, char* argv[])
 			std::string elemName = Game::getElementName(d->id);
 			
 			GfxResource elemNameTexture = GFX::getElemNameTexture(renderer, d->id);
-			//GfxResource elemNameTexture = GFX::renderText(renderer, elemName, {255,255,255,255});
 			SDL_FRect elemTextBox = {
 				(d->box.x + (d->box.w - elemNameTexture.w)/2) + (elemNameTexture.w - elemNameTexture.w * d->scale)/2, //Text X position
 				(d->box.y + d->box.h) + (elemNameTexture.h - elemNameTexture.h * d->scale)+2, //Text Y position
 				elemNameTexture.w, elemNameTexture.h
 			};
 			SDL_RenderTexture(renderer, elemNameTexture.texture, nullptr, &elemTextBox);
-			/*FC_DrawScale(font, renderer,
-				(d->box.x + (d->box.w - textWidth)/2) + (textWidth - textWidth * d->scale)/2, //Text X position
-				(d->box.y + d->box.h) + (textHeight - textHeight * d->scale)+2, //Text Y position
-				{d->scale, d->scale}, elemName.c_str());*/
 		}
-
-		//FC_Draw(font, renderer, winWidth-170, 10, "FPS: %f", 1000/deltaTime);
 
 		ImGui::Render(); //Render ImGui stuff
 		SDL_SetRenderDrawColorFloat(renderer, 0, 0, 0, 255);
