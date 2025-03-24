@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
 	// Game loop init
 	std::vector<std::string> elementsUnlocked = {"air", "earth", "fire", "water"}; //Every element the user has unlocked
 	SDL_FRect addButtonRect = {DEFAULT_WIDTH/2-32, DEFAULT_HEIGHT-80, 64, 64};
-	Sprite addButton = {addButtonRect, addButtonTex, ANIM_NONE, 1.0f}; //Element add button
+	Sprite addButton = Sprite(addButtonRect, addButtonTex); //Element add button
 
 	// Spawn default elements
 	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, Game::getElementNumId("air"));
@@ -163,8 +163,9 @@ int main(int argc, char* argv[])
 					if (rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
 						rightClickDown = false;
 						if (selectedElem != NULL) {
-							selectedElem->anim = ANIM_SHRINK;
-							anim::animInProgress = true;
+							selectedElem->addAnim({ANIM_SCALE, 0.0f, 0.25f});
+							selectedElem->queuedForDeletion = true;
+							deleteNeeded = true;
 							selectedElem = nullptr;
 						}
 					}
@@ -243,7 +244,7 @@ int main(int argc, char* argv[])
 			}
 		}
 		// Sort draggable elements by z index when animations finish
-		if (zSortNeeded && !anim::animInProgress) {
+		if (zSortNeeded) {
 			auto draggableElems = Board::getDraggableElems();
 			std::stable_sort(draggableElems->begin(), draggableElems->end(), []
 			(const std::unique_ptr<DraggableElement> &d1, const std::unique_ptr<DraggableElement> &d2) {
@@ -251,29 +252,11 @@ int main(int argc, char* argv[])
 			});
 			zSortNeeded = false;
 		}
-		// Apply animations
-		if (anim::animInProgress) {
-			bool animDone = false;
-			for (auto& d : *(Board::getDraggableElems())) {
-				if (d->anim == ANIM_SHRINK) {
-					anim::animateShrink(d.get(), deltaTime);
-					animDone = true;
-				} else if (d->anim == ANIM_SHRINK_END) {
-					d->queuedForDeletion = true; //Queue element for deletion when it finishes shrinking
-					deleteNeeded = true; //Remove elements when they finish shrinking
-					animDone = true;
-				} else if (d->anim == ANIM_GROW) {
-					anim::animateGrow(d.get(), deltaTime);
-					animDone = true;
-				}
-				anim::animInProgress = animDone; //Stop animations if none are running
-			}
-		}
 		// Remove elements that are queued for deletion if needed
-		if (deleteNeeded) {
+		//if (deleteNeeded) {
 			Board::clearQueuedElements();
 			deleteNeeded = false;
-		}
+		//}
 
 		SDL_RenderClear(renderer);
 
@@ -284,41 +267,45 @@ int main(int argc, char* argv[])
 
 		UI::renderElemMenu(renderer, elementsUnlocked);
 
-		SDL_RenderTexture(renderer, tex, NULL, NULL); //Render background
-		SDL_RenderTexture(renderer, addButton.texture, NULL, &addButton.box); //Render add button
+		SDL_RenderTexture(renderer, tex, nullptr, nullptr); //Render background
+		SDL_RenderTexture(renderer, addButton.texture, nullptr, &addButton.box); //Render add button
 
 		//Render text
 		SDL_FRect versStringRect = {0, 0, versStringTexture.w, versStringTexture.h};
 		SDL_RenderTexture(renderer, versStringTexture.texture, nullptr, &versStringRect);
 
-		std::string elemCountStr = "Elems: "+std::to_string(Board::getDraggableElems()->size());
+		std::string elemCountStr = std::format("Elems: {}", Board::getDraggableElems()->size());
 		GFX::renderText(elemCountTexture, renderer, elemCountStr.c_str(), {255,255,255,255});
 		SDL_FRect elemCountBox = {0, winHeight-elemCountTexture.h-12.0f, elemCountTexture.w, elemCountTexture.h};
 		SDL_RenderTexture(renderer, elemCountTexture.texture, nullptr, &elemCountBox); //Draw element count
 
-		std::string fpsStr = "FPS: "+std::to_string(1000/deltaTime);
+		std::string fpsStr = std::format("FPS: {:.2f}", 1000/deltaTime);
 		GFX::renderText(fpsDisplayTexture, renderer, fpsStr.c_str(), {255,255,255,255});
 		SDL_FRect fpsStringBox = {0, winHeight-fpsDisplayTexture.h, fpsDisplayTexture.w, fpsDisplayTexture.h};
 		SDL_RenderTexture(renderer, fpsDisplayTexture.texture, nullptr, &fpsStringBox); //Draw fps display
 
 		// Render every draggable element
 		for (auto& d : *(Board::getDraggableElems())) {
-			if ((int)d->scale != 1) {
-				SDL_FRect scaledRect = anim::applyScale(d.get()); //Get scaled rect
-				SDL_RenderTexture(renderer, d->texture, NULL, &scaledRect);
-			} else {
-				SDL_RenderTexture(renderer, d->texture, NULL, &(d->box));
-			}
-
-			std::string elemName = Game::getElementName(d->id);
-			
 			GfxResource elemNameTexture = GFX::getElemNameTexture(renderer, d->id);
 			SDL_FRect elemTextBox = {
-				(d->box.x + (d->box.w - elemNameTexture.w)/2) + (elemNameTexture.w - elemNameTexture.w * d->scale)/2, //Text X position
-				(d->box.y + d->box.h) + (elemNameTexture.h - elemNameTexture.h * d->scale)+2, //Text Y position
+				(d->box.x + (d->box.w - elemNameTexture.w)/2), //Text X position
+				d->box.y + d->box.h, //Text Y position
 				elemNameTexture.w, elemNameTexture.h
 			};
-			SDL_RenderTexture(renderer, elemNameTexture.texture, nullptr, &elemTextBox);
+			if (!d->animQueueEmpty()) {
+				d->parseAnimations(deltaTime);
+				SDL_SetTextureAlphaModFloat(d->texture, d->opacity);
+				SDL_FRect scaledRect = Anim::applyScale(d->box, d->scale); //Get scaled rect
+				SDL_RenderTexture(renderer, d->texture, nullptr, &scaledRect);
+				
+				SDL_SetTextureAlphaModFloat(elemNameTexture.texture, d->opacity);
+				elemTextBox = Anim::applyScale(elemTextBox, d->scale); //Get scaled text rect
+				SDL_RenderTexture(renderer, elemNameTexture.texture, nullptr, &elemTextBox);
+			} else {
+				SDL_SetTextureAlphaModFloat(d->texture, d->opacity);
+				SDL_RenderTexture(renderer, d->texture, NULL, &(d->box));
+				SDL_RenderTexture(renderer, elemNameTexture.texture, nullptr, &elemTextBox);
+			}
 		}
 
 		ImGui::Render(); //Render ImGui stuff

@@ -1,25 +1,25 @@
-#ifndef SPRITE_HPP_ //Include guard
+#ifndef SPRITE_HPP_
 #define SPRITE_HPP_
 #include <SDL3/SDL.h>
-#include <SDL3_image/SDL_image.h>
-#include <stdbool.h>
+#include "Animation.hpp"
 #include <vector>
 
-enum ObjectAnimationType {
-	ANIM_NONE,
-	ANIM_SHRINK,
-	ANIM_SHRINK_END,
-	ANIM_GROW,
-	ANIM_GROW_END,
-	ANIM_FADE_IN,
-	ANIM_FADE_IN_END
-};
-
-struct Sprite {
-	SDL_FRect box;
-	SDL_Texture* texture {NULL};
-	int anim = 0;
+class Sprite {
+protected:
+	std::vector<Animation> animQueue;
+public:
+	float opacity = 1.0f;
 	float scale = 1.0f;
+	SDL_Texture* texture {NULL};
+	SDL_FRect box;
+	void addAnim(Animation anim);
+	Sprite() {};
+	Sprite(SDL_FRect rect, SDL_Texture* tex);
+
+	void parseAnimations(double deltaTime);
+
+	// Return true if no animations are queued
+	bool animQueueEmpty();
 };
 
 #endif

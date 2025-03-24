@@ -1,18 +1,17 @@
 #ifndef ELEMENT_HPP_
 #define ELEMENT_HPP_
-#include <stdbool.h>
+#include "Sprite.hpp"
 #include <vector>
 #include <string>
 #include <unordered_map>
-#include <memory>
-#include "Sprite.hpp"
+#include "Animation.hpp"
 #include "IO.hpp"
 
 #define ELEM_SIZE 32
 
 class DraggableElement : public Sprite {
 public:
-	DraggableElement() : Sprite({{}, nullptr, ANIM_NONE, 1.0f}) {};
+	DraggableElement() : Sprite() {};
 	DraggableElement(SDL_Renderer* ren, int elemId, int mX, int mY);
 	int id;
 	int z = 0; //Z-index

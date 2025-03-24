@@ -4,6 +4,7 @@
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
 #include "Board.hpp"
+#include "Animation.hpp"
 #include <stdlib.h>
 #include <string>
 #include <cmath>

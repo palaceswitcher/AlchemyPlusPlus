@@ -1,4 +1,7 @@
 #include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
+#include "Sprite.hpp"
+#include "Element.hpp"
 #include <iostream>
 #include <cstdlib>
 #include <string>
@@ -6,8 +9,6 @@
 #include <unordered_map>
 #include <algorithm>
 #include <memory>
-#include "Element.hpp"
-#include "Sprite.hpp"
 #include "Text.hpp"
 #include "GameHandler.hpp"
 #include "Animation.hpp"
@@ -17,7 +18,6 @@
 // Constructor
 DraggableElement::DraggableElement(SDL_Renderer* ren, int elemId, int mX, int mY) {
 	SDL_Rect newElemBox;
-
 	float w, h;
 	texture = Board::loadTexture(ren, elemId, &w, &h); //Get texture
 
@@ -29,9 +29,7 @@ DraggableElement::DraggableElement(SDL_Renderer* ren, int elemId, int mX, int mY
 	id = elemId;
 
 	scale = 0.0;
-	anim = ANIM_GROW; //Make element grow on spawn
-
-	anim::animInProgress = true; //Start animations
+	animQueue.push_back({ANIM_SCALE, 1.0f, 0.25f}); //Set up animation
 }
 
 // Checks if two elements are colliding and combines them if possible
@@ -80,13 +78,14 @@ void DraggableElement::makeCombo(SDL_Renderer* ren, std::vector<std::string> &el
 		if (!resultElems.empty()) {
 			std::vector<int> matchingElemXs = {(int)this->box.x};
 			std::vector<int> matchingElemYs = {(int)this->box.y};
-			this->anim = ANIM_SHRINK; //Begin shrinking this element to despawn it
+			this->addAnim({ANIM_SCALE, 0.0f, 0.25f}); //Begin shrinking this element to despawn it
+			this->queuedForDeletion = true;
 			for (auto result : matchingElems) {
-				result->anim = ANIM_SHRINK; //Shrink all matching elements involved in the combination until they despawn
+				result->addAnim({ANIM_SCALE, 0.0f, 0.25f}); //Shrink all matching elements involved in the combination until they despawn
+				result->queuedForDeletion = true;
 				matchingElemXs.push_back(result->box.x);
 				matchingElemYs.push_back(result->box.y);
 			}
-			anim::animInProgress = true; //Start animations
 
 			int minX = *std::min_element(matchingElemXs.begin(), matchingElemXs.end());
 			int minY = *std::min_element(matchingElemYs.begin(), matchingElemYs.end());
