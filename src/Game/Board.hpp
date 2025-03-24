@@ -17,7 +17,7 @@ void spawnDraggable(SDL_Renderer* ren, int x, int y, int id);
 
 std::vector<std::unique_ptr<DraggableElement>>* getDraggableElems();
 
-void clearQueuedElements();
+void clearQueuedElements(bool& deleteUnfinished);
 }
 
 #endif

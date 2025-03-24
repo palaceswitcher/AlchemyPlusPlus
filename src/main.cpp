@@ -112,6 +112,7 @@ int main(int argc, char* argv[])
 	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2+24, DEFAULT_HEIGHT/2-16, Game::getElementNumId("water"));
 
 	DraggableElement* selectedElem = NULL; //Currently selected draggable
+	DraggableElement* infoElem = NULL; //Currently selected draggable
 
 	bool leftClickDown = false; //Left click state, used to track drag and drop
 	bool rightClickDown = false; //Middle click state
@@ -127,120 +128,147 @@ int main(int argc, char* argv[])
 	bool deleteNeeded = false; //Used to determine if any elements need to be deleted
 	bool zSortNeeded = false; //Used to indicate if elements need to be sorted
 	bool quit = false; //Main loop exit flag
+	bool infoKeyDown = false;
 	while (!quit) {
 		auto startTick = Clock::now(); //Get start tick
 		SDL_GetWindowSize(window, &winWidth, &winHeight); //Get new screen size
 
 		SDL_Event e;
 		while (SDL_PollEvent(&e)) {
+			ImGui_ImplSDL3_ProcessEvent(&e);
 			if (e.type == SDL_EVENT_QUIT) {
 				quit = true;
 				break; //Close the program if X is clicked
 			}
-			if(!io.WantCaptureMouse) {
-				switch (e.type) {
-				case SDL_EVENT_MOUSE_MOTION: {
-					mousePos = {e.motion.x, e.motion.y}; //Get mouse position
-					if (leftClickDown && selectedElem != NULL) {
-						selectedElem->box.x = mousePos.x - clickOffset.x;
-						selectedElem->box.y = mousePos.y - clickOffset.y; //Update rectangle position while its being dragged
-					}
-					break;
-				}
-				case SDL_EVENT_MOUSE_BUTTON_UP: {
-					if (leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
-						leftClickDown = false;
-
-						if (selectedElem != NULL) {
-							selectedElem->z++; //Move behind
-							selectedElem->makeCombo(renderer, elementsUnlocked); //See if combination was made with another element
-							deleteNeeded = selectedElem->queuedForDeletion = (selectedElem->box.x >= winWidth || selectedElem->box.y >= winHeight); //Delete element if it goes off-screen
-						}
-						selectedElem = NULL; //Release selected rectangle when left is released
-						zSortNeeded = true; //Re-sort Z-index after element was dropped
-					}
-					// Remove if right clicked
-					if (rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
-						rightClickDown = false;
-						if (selectedElem != NULL) {
-							selectedElem->addAnim({ANIM_SCALE, 0.0f, 0.25f});
-							selectedElem->queuedForDeletion = true;
-							deleteNeeded = true;
-							selectedElem = nullptr;
-						}
-					}
-					break;
-				}
-				case SDL_EVENT_MOUSE_BUTTON_DOWN: {
-					// Get element clicked regardless of mouse button
+			switch (e.type) {
+			case SDL_EVENT_KEY_DOWN: {
+				if (e.key.scancode == SDL_SCANCODE_I) {
+					infoElem = nullptr;
 					std::vector<DraggableElement*> clickMatches; //Every element that the cursor clicked on
-					if (selectedElem == NULL) {
-						// Check if circle around the add button is clicked
-						if (((mousePos.x-(addButton.box.x+32))*(mousePos.x-(addButton.box.x+32)) + (mousePos.y-(addButton.box.y+32))*(mousePos.y-(addButton.box.y+32))) < 32*32) {
-							addButtonClicked = true;
-							UI::openElementMenu();
-						} else {
-							for (auto& d : *(Board::getDraggableElems())) {
-								if (!d->queuedForDeletion && SDL_PointInRectFloat(&mousePos, &d->box)) {
-									clickMatches.push_back(d.get());
-								}
-							}
-							if (!clickMatches.empty()) {
-								zSortNeeded = true; //Z-index will need to be resorted as this element will be moved to the front
-								std::stable_sort(clickMatches.begin(), clickMatches.end(), [](DraggableElement* d1, DraggableElement* d2) {
-									return d1->z > d2->z;
-								});
+					for (auto& d : *(Board::getDraggableElems())) {
+						if (!d->queuedForDeletion && SDL_PointInRectFloat(&mousePos, &d->box)) {
+							clickMatches.push_back(d.get());
+						}
+					}
+					if (!clickMatches.empty()) {
+						std::stable_sort(clickMatches.begin(), clickMatches.end(), [](DraggableElement* d1, DraggableElement* d2) {
+							return d1->z > d2->z;
+						});
 
-								selectedElem = clickMatches.back(); //Select rectangle with highest Z-index
-								selectedElem->z = 0; //Move to front of z-index
-							}
-						}
+						infoElem = clickMatches.back(); //Select rectangle with highest Z-index
 					}
-					if (!leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
-						leftClickDown = true;
-						if (selectedElem == NULL) {
-							if (!clickMatches.empty()) {
-								clickOffset.x = mousePos.x - selectedElem->box.x;
-								clickOffset.y = mousePos.y - selectedElem->box.y; //Get clicked point in element box relative to its boundary
-							}
-						} else {
-							clickOffset.x = mousePos.x - selectedElem->box.x;
-							clickOffset.y = mousePos.y - selectedElem->box.y; //Don't look for a new element to select if one is already selected
-						}
-						// Spawn new elements on double click
-						if (SDL_GetTicks() > leftClickTick && SDL_GetTicks() <= leftClickTick + 250) { //Double clicks have to be within 1/4 second of each other
-							if (selectedElem == NULL) {
-								Board::spawnDraggable(renderer, mousePos.x, mousePos.y+40, Game::getElementNumId("air"));
-								Board::spawnDraggable(renderer, mousePos.x, mousePos.y-40, Game::getElementNumId("earth"));
-								Board::spawnDraggable(renderer, mousePos.x-40, mousePos.y, Game::getElementNumId("fire"));
-								Board::spawnDraggable(renderer, mousePos.x+40, mousePos.y, Game::getElementNumId("water"));
-							} else {
-								int hSpawnOffset = ((selectedElem->box.x + selectedElem->box.w/2) > mousePos.x) ? -40 : 40;
-								int vSpawnOffset = ((selectedElem->box.y + selectedElem->box.h/2) > mousePos.y) ? -40 : 40; //Duplicate the element to the corner it was clicked
-								Board::spawnDraggable(renderer, selectedElem->box.x+hSpawnOffset, selectedElem->box.y+vSpawnOffset, selectedElem->id); //Duplicate element if it's double clicked
-							}
-						}
-						leftClickTick = SDL_GetTicks(); //Get next click tick
+					if (infoElem != nullptr) {
+						std::cout << "ELEM REPORT: " << Game::getElementName(infoElem->id) << '\n';
+						std::cout << std::format("Elem[{}x{}] at {}, {}", infoElem->box.w, infoElem->box.h, infoElem->box.x, infoElem->box.y) << '\n';
 					}
-
-					if (!rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
-						rightClickDown = true;
-					}
-					break;
 				}
-				}
+				break;
 			}
-			// Respond to window resize
-			if (e.type == SDL_EVENT_WINDOW_RESIZED) {
-				int prevWinWidth = winWidth;
-				int prevWinHeight = winHeight;
-				SDL_GetWindowSize(window, &winWidth, &winHeight); //Get new screen size
-				addButton.box = {(float)winWidth/2-32, (float)winHeight-80, 64, 64}; //Position add button to the center of the screen
-				// Adjust draggable elements relative to their previous position
-				for (auto& d : *(Board::getDraggableElems())) {
-					d->box.x = round(d->box.x * (double)winWidth/prevWinWidth);
-					d->box.y = round(d->box.y * (double)winHeight/prevWinHeight);
+			case SDL_EVENT_MOUSE_MOTION: {
+				mousePos = {e.motion.x, e.motion.y}; //Get mouse position
+				if (leftClickDown && selectedElem != NULL) {
+					selectedElem->box.x = roundf(mousePos.x - clickOffset.x);
+					selectedElem->box.y = roundf(mousePos.y - clickOffset.y); //Update rectangle position while its being dragged
 				}
+				break;
+			}
+			case SDL_EVENT_MOUSE_BUTTON_UP: {
+				if (leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
+					leftClickDown = false;
+
+					if (selectedElem != NULL) {
+						selectedElem->z++; //Move behind
+						selectedElem->makeCombo(renderer, elementsUnlocked); //See if combination was made with another element
+						if (!selectedElem->queuedForDeletion) {
+							deleteNeeded = selectedElem->queuedForDeletion = (selectedElem->box.x >= winWidth || selectedElem->box.y >= winHeight); //Delete element if it goes off-screen
+						} else{
+							deleteNeeded = selectedElem->queuedForDeletion;
+						}
+					}
+					selectedElem = NULL; //Release selected rectangle when left is released
+					zSortNeeded = true; //Re-sort Z-index after element was dropped
+				}
+				// Remove if right clicked
+				if (rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
+					rightClickDown = false;
+					if (selectedElem != NULL) {
+						selectedElem->addAnim({ANIM_SCALE, 0.0f, 0.25f});
+						selectedElem->queuedForDeletion = true;
+						deleteNeeded = true;
+						selectedElem = nullptr;
+					}
+				}
+				break;
+			}
+			case SDL_EVENT_MOUSE_BUTTON_DOWN: {
+				// Get element clicked regardless of mouse button
+				std::vector<DraggableElement*> clickMatches; //Every element that the cursor clicked on
+				if (selectedElem == NULL) {
+					// Check if circle around the add button is clicked
+					if (((mousePos.x-(addButton.box.x+32))*(mousePos.x-(addButton.box.x+32)) + (mousePos.y-(addButton.box.y+32))*(mousePos.y-(addButton.box.y+32))) < 32*32) {
+						addButtonClicked = true;
+						UI::openElementMenu();
+					} else {
+						for (auto& d : *(Board::getDraggableElems())) {
+							if (!d->queuedForDeletion && SDL_PointInRectFloat(&mousePos, &d->box)) {
+								clickMatches.push_back(d.get());
+							}
+						}
+						if (!clickMatches.empty()) {
+							zSortNeeded = true; //Z-index will need to be resorted as this element will be moved to the front
+							std::stable_sort(clickMatches.begin(), clickMatches.end(), [](DraggableElement* d1, DraggableElement* d2) {
+								return d1->z > d2->z;
+							});
+
+							selectedElem = clickMatches.back(); //Select rectangle with highest Z-index
+							selectedElem->z = 0; //Move to front of z-index
+						}
+					}
+				}
+				if (!leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
+					leftClickDown = true;
+					if (selectedElem == NULL) {
+						if (!clickMatches.empty()) {
+							clickOffset.x = mousePos.x - selectedElem->box.x;
+							clickOffset.y = mousePos.y - selectedElem->box.y; //Get clicked point in element box relative to its boundary
+						}
+					} else {
+						clickOffset.x = mousePos.x - selectedElem->box.x;
+						clickOffset.y = mousePos.y - selectedElem->box.y; //Don't look for a new element to select if one is already selected
+					}
+					// Spawn new elements on double click
+					if (SDL_GetTicks() > leftClickTick && SDL_GetTicks() <= leftClickTick + 250) { //Double clicks have to be within 1/4 second of each other
+						if (selectedElem == NULL) {
+							Board::spawnDraggable(renderer, mousePos.x, mousePos.y+40, Game::getElementNumId("air"));
+							Board::spawnDraggable(renderer, mousePos.x, mousePos.y-40, Game::getElementNumId("earth"));
+							Board::spawnDraggable(renderer, mousePos.x-40, mousePos.y, Game::getElementNumId("fire"));
+							Board::spawnDraggable(renderer, mousePos.x+40, mousePos.y, Game::getElementNumId("water"));
+						} else {
+							int hSpawnOffset = ((selectedElem->box.x + selectedElem->box.w/2) > mousePos.x) ? -40 : 40;
+							int vSpawnOffset = ((selectedElem->box.y + selectedElem->box.h/2) > mousePos.y) ? -40 : 40; //Duplicate the element to the corner it was clicked
+							Board::spawnDraggable(renderer, selectedElem->box.x+hSpawnOffset, selectedElem->box.y+vSpawnOffset, selectedElem->id); //Duplicate element if it's double clicked
+						}
+					}
+					leftClickTick = SDL_GetTicks(); //Get next click tick
+				}
+
+				if (!rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
+					rightClickDown = true;
+				}
+				break;
+			}
+			}
+		}
+		// Respond to window resize
+		if (e.type == SDL_EVENT_WINDOW_RESIZED) {
+			int prevWinWidth = winWidth;
+			int prevWinHeight = winHeight;
+			SDL_GetWindowSize(window, &winWidth, &winHeight); //Get new screen size
+			addButton.box = {(float)winWidth/2-32, (float)winHeight-80, 64, 64}; //Position add button to the center of the screen
+			// Adjust draggable elements relative to their previous position
+			for (auto& d : *(Board::getDraggableElems())) {
+				d->box.x = round(d->box.x * (double)winWidth/prevWinWidth);
+				d->box.y = round(d->box.y * (double)winHeight/prevWinHeight);
 			}
 		}
 		// Sort draggable elements by z index when animations finish
@@ -253,10 +281,9 @@ int main(int argc, char* argv[])
 			zSortNeeded = false;
 		}
 		// Remove elements that are queued for deletion if needed
-		//if (deleteNeeded) {
-			Board::clearQueuedElements();
-			deleteNeeded = false;
-		//}
+		if (deleteNeeded) {
+			Board::clearQueuedElements(deleteNeeded);
+		}
 
 		SDL_RenderClear(renderer);
 
@@ -288,24 +315,17 @@ int main(int argc, char* argv[])
 		for (auto& d : *(Board::getDraggableElems())) {
 			GfxResource elemNameTexture = GFX::getElemNameTexture(renderer, d->id);
 			SDL_FRect elemTextBox = {
-				(d->box.x + (d->box.w - elemNameTexture.w)/2), //Text X position
-				d->box.y + d->box.h, //Text Y position
+				roundf(d->box.x + (d->box.w - elemNameTexture.w)/2), //Text X position
+				roundf(d->box.y + d->box.h), //Text Y position
 				elemNameTexture.w, elemNameTexture.h
 			};
-			if (!d->animQueueEmpty()) {
-				d->parseAnimations(deltaTime);
-				SDL_SetTextureAlphaModFloat(d->texture, d->opacity);
-				SDL_FRect scaledRect = Anim::applyScale(d->box, d->scale); //Get scaled rect
-				SDL_RenderTexture(renderer, d->texture, nullptr, &scaledRect);
-				
-				SDL_SetTextureAlphaModFloat(elemNameTexture.texture, d->opacity);
-				elemTextBox = Anim::applyScale(elemTextBox, d->scale); //Get scaled text rect
-				SDL_RenderTexture(renderer, elemNameTexture.texture, nullptr, &elemTextBox);
-			} else {
-				SDL_SetTextureAlphaModFloat(d->texture, d->opacity);
-				SDL_RenderTexture(renderer, d->texture, NULL, &(d->box));
-				SDL_RenderTexture(renderer, elemNameTexture.texture, nullptr, &elemTextBox);
-			}
+			d->parseAnimations(deltaTime);
+			SDL_SetTextureAlphaModFloat(d->texture, d->opacity);
+			SDL_SetTextureAlphaModFloat(elemNameTexture.texture, d->opacity);
+			SDL_FRect scaledRect = Anim::applyScale(d->box, d->scale); //Get scaled rect
+			SDL_RenderTexture(renderer, d->texture, nullptr, &scaledRect);
+			elemTextBox = Anim::applyScale(elemTextBox, d->scale); //Get scaled text rect
+			SDL_RenderTexture(renderer, elemNameTexture.texture, nullptr, &elemTextBox);
 		}
 
 		ImGui::Render(); //Render ImGui stuff

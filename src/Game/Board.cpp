@@ -15,9 +15,13 @@ std::vector<std::unique_ptr<DraggableElement>>* Board::getDraggableElems() {
 	return &draggableElems;
 }
 
-void Board::clearQueuedElements() {
+void Board::clearQueuedElements(bool& deleteUnfinished) {
 	draggableElems.erase(std::remove_if(draggableElems.begin(), draggableElems.end(),
-	[](const std::unique_ptr<DraggableElement> &d) {
+	[&deleteUnfinished](const std::unique_ptr<DraggableElement> &d) {
+		bool wasDeleted = d->queuedForDeletion && d->animQueueEmpty();
+		if (deleteUnfinished && wasDeleted) {
+			deleteUnfinished = false;
+		}
 		return d->queuedForDeletion && d->animQueueEmpty(); //Elements can't be deleted until all animations finish
 	}
 	), draggableElems.end());

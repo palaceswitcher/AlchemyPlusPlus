@@ -5,8 +5,8 @@
 #include <iostream>
 
 void Sprite::parseAnimations(double deltaTime) {
-	deltaTime /= 1000;
 	if (!animQueue.empty()) {
+		deltaTime /= 1000;
 		Animation anim = animQueue.back();
 		if ((anim.animFlags & ANIM_SCALE) != 0) {
 			if (scale < anim.end) {
