@@ -28,6 +28,7 @@
 #include "GameHandler.hpp"
 #include "Element.hpp"
 #include "Board.hpp"
+#include "Button.hpp"
 #include "ElementMenu.hpp"
 #include "Sprite.hpp"
 #include "Animation.hpp"
@@ -103,7 +104,7 @@ int main(int argc, char* argv[])
 	// Game loop init
 	std::vector<std::string> elementsUnlocked = {"air", "earth", "fire", "water"}; //Every element the user has unlocked
 	SDL_FRect addButtonRect = {DEFAULT_WIDTH/2-32, DEFAULT_HEIGHT-80, 64, 64};
-	Sprite addButton = Sprite(addButtonRect, addButtonTex); //Element add button
+	Button addButton = Button(addButtonRect, addButtonTex); //Element add button
 
 	// Spawn default elements
 	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, Game::getElementNumId("air"));
@@ -117,7 +118,6 @@ int main(int argc, char* argv[])
 	bool leftClickDown = false; //Left click state, used to track drag and drop
 	bool rightClickDown = false; //Middle click state
 	long leftClickTick = 0; //The tick when left was clicked, used to detect double clicks
-	bool addButtonClicked = false;
 	SDL_FPoint mousePos; //Mouse position
 	SDL_Point clickOffset; //Point in the element box clicked relative to its boundary
 	int winWidth, winHeight; //Window size
@@ -125,6 +125,9 @@ int main(int argc, char* argv[])
 	auto endTick = Clock::now();
 	double deltaTime = 1.0/60;
 	// Game flags
+	bool addButtonClicked = false;
+	bool settingsButtonClicked = false;
+
 	bool deleteNeeded = false; //Used to determine if any elements need to be deleted
 	bool zSortNeeded = false; //Used to indicate if elements need to be sorted
 	bool quit = false; //Main loop exit flag
@@ -161,6 +164,16 @@ int main(int argc, char* argv[])
 						std::cout << "ELEM REPORT: " << Game::getElementName(infoElem->id) << '\n';
 						std::cout << std::format("Elem[{}x{}] at {}, {}", infoElem->box.w, infoElem->box.h, infoElem->box.x, infoElem->box.y) << '\n';
 					}
+				} else if (e.key.scancode == SDL_SCANCODE_F1) {
+					for (auto& d : *(Board::getDraggableElems())) {
+						d->scale = 1.0f;
+					}
+				} else if (e.key.scancode == SDL_SCANCODE_F2) {
+					for (auto& d : *(Board::getDraggableElems())) {
+						d->addAnim({ANIM_SCALE, 0.0f, 0.25f});
+						d->queuedForDeletion = true;
+						deleteNeeded = true;
+					};
 				}
 				break;
 			}
@@ -181,8 +194,14 @@ int main(int argc, char* argv[])
 						selectedElem->makeCombo(renderer, elementsUnlocked); //See if combination was made with another element
 						if (!selectedElem->queuedForDeletion) {
 							deleteNeeded = selectedElem->queuedForDeletion = (selectedElem->box.x >= winWidth || selectedElem->box.y >= winHeight); //Delete element if it goes off-screen
-						} else{
+						} else {
 							deleteNeeded = selectedElem->queuedForDeletion;
+						}
+					} else {
+						if (addButtonClicked)  {
+							addButtonClicked = false;
+							addButton.addAnim({ANIM_SCALE, 1.0f, 0.1875f});
+							addButton.wasClicked = true;
 						}
 					}
 					selectedElem = NULL; //Release selected rectangle when left is released
@@ -204,25 +223,19 @@ int main(int argc, char* argv[])
 				// Get element clicked regardless of mouse button
 				std::vector<DraggableElement*> clickMatches; //Every element that the cursor clicked on
 				if (selectedElem == NULL) {
-					// Check if circle around the add button is clicked
-					if (((mousePos.x-(addButton.box.x+32))*(mousePos.x-(addButton.box.x+32)) + (mousePos.y-(addButton.box.y+32))*(mousePos.y-(addButton.box.y+32))) < 32*32) {
-						addButtonClicked = true;
-						UI::openElementMenu();
-					} else {
-						for (auto& d : *(Board::getDraggableElems())) {
-							if (!d->queuedForDeletion && SDL_PointInRectFloat(&mousePos, &d->box)) {
-								clickMatches.push_back(d.get());
-							}
+					for (auto& d : *(Board::getDraggableElems())) {
+						if (!d->queuedForDeletion && SDL_PointInRectFloat(&mousePos, &d->box)) {
+							clickMatches.push_back(d.get());
 						}
-						if (!clickMatches.empty()) {
-							zSortNeeded = true; //Z-index will need to be resorted as this element will be moved to the front
-							std::stable_sort(clickMatches.begin(), clickMatches.end(), [](DraggableElement* d1, DraggableElement* d2) {
-								return d1->z > d2->z;
-							});
+					}
+					if (!clickMatches.empty()) {
+						zSortNeeded = true; //Z-index will need to be resorted as this element will be moved to the front
+						std::stable_sort(clickMatches.begin(), clickMatches.end(), [](DraggableElement* d1, DraggableElement* d2) {
+							return d1->z > d2->z;
+						});
 
-							selectedElem = clickMatches.back(); //Select rectangle with highest Z-index
-							selectedElem->z = 0; //Move to front of z-index
-						}
+						selectedElem = clickMatches.back(); //Select rectangle with highest Z-index
+						selectedElem->z = 0; //Move to front of z-index
 					}
 				}
 				if (!leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
@@ -231,6 +244,12 @@ int main(int argc, char* argv[])
 						if (!clickMatches.empty()) {
 							clickOffset.x = mousePos.x - selectedElem->box.x;
 							clickOffset.y = mousePos.y - selectedElem->box.y; //Get clicked point in element box relative to its boundary
+						} else {
+							// Check if circle around the add button is clicked
+							if (((mousePos.x-(addButton.box.x+32))*(mousePos.x-(addButton.box.x+32)) + (mousePos.y-(addButton.box.y+32))*(mousePos.y-(addButton.box.y+32))) < 32*32) {
+								addButton.addAnim({ANIM_SCALE, 1.25f, 0.1875f});
+								addButtonClicked = true;
+							}
 						}
 					} else {
 						clickOffset.x = mousePos.x - selectedElem->box.x;
@@ -281,9 +300,9 @@ int main(int argc, char* argv[])
 			zSortNeeded = false;
 		}
 		// Remove elements that are queued for deletion if needed
-		if (deleteNeeded) {
+		//if (deleteNeeded) {
 			Board::clearQueuedElements(deleteNeeded);
-		}
+		//}
 
 		SDL_RenderClear(renderer);
 
@@ -292,10 +311,16 @@ int main(int argc, char* argv[])
 		ImGui_ImplSDL3_NewFrame();
 		ImGui::NewFrame();
 
+		if (addButton.awaitingResponse()) {
+			addButton.wasClicked = false;
+			UI::openElementMenu();
+		}
 		UI::renderElemMenu(renderer, elementsUnlocked);
 
 		SDL_RenderTexture(renderer, tex, nullptr, nullptr); //Render background
-		SDL_RenderTexture(renderer, addButton.texture, nullptr, &addButton.box); //Render add button
+		addButton.parseAnimations(deltaTime);
+		SDL_FRect addButtonRect = Anim::applyScale(addButton.box, addButton.scale);
+		SDL_RenderTexture(renderer, addButton.texture, nullptr, &addButtonRect); //Render add button
 
 		//Render text
 		SDL_FRect versStringRect = {0, 0, versStringTexture.w, versStringTexture.h};

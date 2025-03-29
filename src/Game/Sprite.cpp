@@ -45,7 +45,7 @@ void Sprite::parseAnimations(double deltaTime) {
 }
 
 void Sprite::addAnim(Animation anim) {
-	animQueue.push_back(anim);
+	animQueue.insert(animQueue.begin(), anim);
 }
 
 Sprite::Sprite(SDL_FRect rect, SDL_Texture* tex) {
