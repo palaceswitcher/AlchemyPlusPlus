@@ -1,3 +1,4 @@
+#include "GameHandler.hpp"
 #include <SDL3/SDL.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include "glaze/glaze.hpp"
@@ -10,7 +11,7 @@
 #include <unordered_map>
 #include <utility>
 #include "IO.hpp"
-#include "GameHandler.hpp"
+#include "Progress.hpp"
 
 // Directories
 const std::string GAME_DATA_DIR = "gamedata/";
@@ -125,5 +126,9 @@ bool Game::loadGameData(std::string id) {
 	loadElementNames("en-us");
 	std::string fontPath = fontDir+"Open-Sans.ttf";
 	font = TTF_OpenFont(fontPath.c_str(), 12.0f);
+	Progress::UnlockElement(elemKeyLookback["air"]);
+	Progress::UnlockElement(elemKeyLookback["earth"]);
+	Progress::UnlockElement(elemKeyLookback["fire"]);
+	Progress::UnlockElement(elemKeyLookback["water"]);
 	return true;
 }

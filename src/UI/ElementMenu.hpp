@@ -6,10 +6,10 @@
 #include <vector>
 
 // Get every unlocked element that matches the query
-std::vector<std::string> getElemSearchResults(std::string query, std::vector<std::string> elementsUnlocked);
+std::vector<int> getElemSearchResults(std::string query);
 namespace UI {
 void openElementMenu();
-void renderElemMenu(SDL_Renderer* ren, std::vector<std::string> elementsUnlocked);
+void renderElemMenu(SDL_Renderer* ren);
 }
 
 #endif

@@ -5,7 +5,7 @@
 #include "imgui_impl_sdlrenderer3.h"
 #include "Board.hpp"
 #include "Animation.hpp"
-#include <stdlib.h>
+#include "Progress.hpp"
 #include <string>
 #include <cmath>
 #include <vector>
@@ -15,9 +15,9 @@
 #include "Animation.hpp"
 
 std::string elementMenuInputBuf; //Element menu search string
-std::vector<std::string> matchingElemIDs; //Any elements matching the search query
+std::vector<int> matchingElemIDs; //Any elements matching the search query
 int elementMenuSpawnCount; //Number of elements spawned in the element menu. Used to determine where an element should be placed
-std::unordered_map<std::string, int> elementMenuSelectCounts; //The amount of times each element was selected in the element menu
+std::unordered_map<int, int> elementMenuSelectCounts; //The amount of times each element was selected in the element menu
 bool elementMenuOpen = false; //Whether element menu is opened or not
 
 void UI::openElementMenu() {
@@ -25,22 +25,24 @@ void UI::openElementMenu() {
 }
 
 // Get every unlocked element that matches the query
-std::vector<std::string> getElemSearchResults(std::string query, std::vector<std::string> elementsUnlocked) {
-	std::vector<std::string> matchingElementIDs; //String IDs of every element that matches the query
-	std::copy_if(elementsUnlocked.begin(), elementsUnlocked.end(), std::back_inserter(matchingElementIDs), [query]
+std::vector<int> getElemSearchResults(std::string query) {
+	std::vector<int> matchingElementIDs; //IDs of every element that matches the query
+	for (auto id : Progress::GetUnlockedElements()) {
+		if (Game::getElementName(id).find(query) != std::string::npos) {
+			matchingElementIDs.push_back(id);
+		}
+	}
+	/*std::copy_if(elementsUnlocked.begin(), elementsUnlocked.end(), std::back_inserter(matchingElementIDs), [query]
 	(std::string const& s) {
 		std::string name = Game::getElementName(s);
 		return name.size() > 0 && name.find(query) != std::string::npos;
-	});
+	});*/
 	return matchingElementIDs;
 }
 
-void UI::renderElemMenu(SDL_Renderer* ren, std::vector<std::string> elementsUnlocked) {
+void UI::renderElemMenu(SDL_Renderer* ren) {
 	float elemBoxSize = 64.0f;
-	float winWidth = ImGui::GetWindowWidth();
-	float winHeight = ImGui::GetWindowHeight();
 	if (elementMenuOpen) {
-		int columnCount = (int)(ImGui::GetWindowWidth() / 64);
 		//ImLerp(255.0f, 0.0f, (ImGui::GetTime() - start_time) / duration_seconds)
 		ImGui::SetNextWindowFocus();
 		ImGuiViewport* viewport = ImGui::GetMainViewport();
@@ -56,17 +58,18 @@ void UI::renderElemMenu(SDL_Renderer* ren, std::vector<std::string> elementsUnlo
 
 		// Search box
 		if (ImGui::InputTextWithHint("##elementMenuSearchBox", "Element", &elementMenuInputBuf) || matchingElemIDs.empty()) {
-			matchingElemIDs = getElemSearchResults(elementMenuInputBuf, elementsUnlocked);
+			matchingElemIDs = getElemSearchResults(elementMenuInputBuf);
 		}
 		// Create map of selection counts for each unlocked element if needed
 		if (elementMenuSelectCounts.empty()) {
-			for (auto id : elementsUnlocked) {
-				elementMenuSelectCounts.insert(std::make_pair(id, 0));
+			for (auto id : Progress::GetUnlockedElements()) {
+				elementMenuSelectCounts.insert({id, 0});
 			}
 		}
 
 		if (!matchingElemIDs.empty()) {
-			int colCount = floor(winWidth / elemBoxSize);
+			//TODO FIX COLUMN COUNT TO ACCOUNT FOR MARGINS
+			int colCount = floorf(ImGui::GetWindowWidth() / (elemBoxSize+ImGui::GetStyle().WindowPadding.x));
 			for (int i = 0; i < matchingElemIDs.size(); i++) {
 				if (i % colCount != 0) { ImGui::SameLine(); }
 				std::string elemName = Game::getElementName(matchingElemIDs[i]);
@@ -105,13 +108,13 @@ void UI::renderElemMenu(SDL_Renderer* ren, std::vector<std::string> elementsUnlo
 				auto afterPos = ImGui::GetCursorPos();
 				ImGui::PopID();
 				float elemW, elemH;
-				SDL_Texture* elemTex = Board::loadTexture(ren, Game::getElementNumId(matchingElemIDs[i]), &elemW, &elemH); //Load texture and its dimensions
+				SDL_Texture* elemTex = Board::loadTexture(ren, matchingElemIDs[i], &elemW, &elemH); //Load texture and its dimensions
 				ImVec2 min = ImGui::GetItemRectMin();
 				ImVec2 max = ImGui::GetItemRectMax();
 				ImVec2 center = ImVec2(min.x + ceil((max.x - min.x - elemW) * 0.5f), min.y + (elemBoxSize * 0.125f));
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
 				// Draw icon
-				drawList->AddImage((ImTextureID)(intptr_t) Board::textureIndex[Game::getElementNumId(matchingElemIDs[i])], center, ImVec2(center.x + elemW, center.y + elemH));
+				drawList->AddImage((ImTextureID)(intptr_t) Board::textureIndex[matchingElemIDs[i]], center, ImVec2(center.x + elemW, center.y + elemH));
 				// Draw spawn count
 				std::string spawnCountTxt = std::to_string(elementMenuSelectCounts[matchingElemIDs[i]]);
 				ImVec2 textSize = ImGui::CalcTextSize(spawnCountTxt.c_str(), nullptr, false, elemBoxSize);
@@ -138,7 +141,7 @@ void UI::renderElemMenu(SDL_Renderer* ren, std::vector<std::string> elementsUnlo
 	} else {
 		for (auto &pair : elementMenuSelectCounts) {
 			for (int i = 0; i < pair.second; i++) {
-				Board::spawnDraggable(ren, 288, 208, Game::getElementNumId(pair.first));
+				Board::spawnDraggable(ren, 288, 208, pair.first);
 			}
 		}
 		elementMenuSpawnCount = 0; //Reset spawned element count when the element menu is closed

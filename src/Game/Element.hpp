@@ -17,7 +17,7 @@ public:
 	int z = 0; //Z-index
 	bool queuedForDeletion = false;
 
-	void makeCombo(SDL_Renderer* ren, std::vector<std::string> &elementsUnlocked);
+	void makeCombo(SDL_Renderer* ren);
 };
 
 namespace Board {

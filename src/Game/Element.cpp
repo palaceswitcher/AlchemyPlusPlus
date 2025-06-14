@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <memory>
+#include "Progress.hpp"
 #include "Text.hpp"
 #include "GameHandler.hpp"
 #include "Animation.hpp"
@@ -33,7 +34,7 @@ DraggableElement::DraggableElement(SDL_Renderer* ren, int elemId, int mX, int mY
 }
 
 // Checks if two elements are colliding and combines them if possible
-void DraggableElement::makeCombo(SDL_Renderer* ren, std::vector<std::string> &elementsUnlocked) {
+void DraggableElement::makeCombo(SDL_Renderer* ren) {
 	std::vector<std::unique_ptr<DraggableElement>>* draggableElems = Board::getDraggableElems();
 
 	auto comboData = Game::getComboData(this->id); //Get combinations for first selected element
@@ -95,6 +96,7 @@ void DraggableElement::makeCombo(SDL_Renderer* ren, std::vector<std::string> &el
 				int newX = minX + ((i+1) * (maxX-minX) / (resultElems.size()+1)); //TODO POSITION THEM SO THEY CANNOT OVERLAP
 				int newY = minY + ((i+1) * (maxY-minY) / (resultElems.size()+1)); //Position new elements between the combined elements
 				Board::spawnDraggable(ren, newX, newY, resultElems[i]); //Add elements to screen
+				Progress::UnlockElement(resultElems[i]);
 			}
 		}
 	}

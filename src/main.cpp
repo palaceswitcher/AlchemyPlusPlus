@@ -102,7 +102,6 @@ int main(int argc, char* argv[])
 	GFX::renderText(versStringTexture, renderer, "Alchemy++ alpha v0.4", {255,255,255,255});
 
 	// Game loop init
-	std::vector<std::string> elementsUnlocked = {"air", "earth", "fire", "water"}; //Every element the user has unlocked
 	SDL_FRect addButtonRect = {DEFAULT_WIDTH/2-32, DEFAULT_HEIGHT-80, 64, 64};
 	Button addButton = Button(addButtonRect, addButtonTex); //Element add button
 
@@ -191,7 +190,7 @@ int main(int argc, char* argv[])
 
 					if (selectedElem != NULL) {
 						selectedElem->z++; //Move behind
-						selectedElem->makeCombo(renderer, elementsUnlocked); //See if combination was made with another element
+						selectedElem->makeCombo(renderer); //See if combination was made with another element
 						if (!selectedElem->queuedForDeletion) {
 							deleteNeeded = selectedElem->queuedForDeletion = (selectedElem->box.x >= winWidth || selectedElem->box.y >= winHeight); //Delete element if it goes off-screen
 						} else {
@@ -315,7 +314,7 @@ int main(int argc, char* argv[])
 			addButton.wasClicked = false;
 			UI::openElementMenu();
 		}
-		UI::renderElemMenu(renderer, elementsUnlocked);
+		UI::renderElemMenu(renderer);
 
 		SDL_RenderTexture(renderer, tex, nullptr, nullptr); //Render background
 		addButton.parseAnimations(deltaTime);
