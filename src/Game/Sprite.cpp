@@ -13,7 +13,7 @@ void Sprite::parseAnimations(double deltaTime) {
 				scale += deltaTime/anim.duration;
 				if (scale > anim.end) {
 					scale = anim.end;
-					anim.animFlags ^= ANIM_SCALE; //Clear bit if animation finishes
+					anim.animFlags ^= ANIM_SCALE; // Clear bit if animation finishes
 				}
 			} else {
 				scale -= deltaTime/anim.duration;
@@ -39,7 +39,7 @@ void Sprite::parseAnimations(double deltaTime) {
 			}
 		}
 		if (anim.animFlags == 0) {
-			animQueue.pop_back(); //Remove animation from the queue if all properties have been processed and the animation is done
+			animQueue.pop_back(); // Remove animation from the queue if all properties have been processed and the animation is done
 		}
 	}
 }

@@ -15,18 +15,18 @@
 
 // Directories
 const std::string GAME_DATA_DIR = "gamedata/";
-std::string gameID; //ID of the current name, used to determine its directory
-std::string currentGameDir; //Current game's root directory
+std::string gameID; // ID of the current name, used to determine its directory
+std::string currentGameDir; // Current game's root directory
 std::string fontDir;
 std::string textureDir;
-std::string textDir; //Current game's asset directories
+std::string textDir; // Current game's asset directories
 
 // Game data
 std::unordered_map<std::string, int> elemKeyLookback;
-std::vector<std::string> elementStringIds; //String ID for every element in order of serialization
-std::vector<std::vector<std::pair<std::vector<int>, std::vector<int>>>> elementComboData; //Element combination data
-std::vector<std::string> elementNames; //Name of every element in order
-TTF_Font* font; //Game font (//TODO EXPAND)
+std::vector<std::string> elementStringIds; // String ID for every element in order of serialization
+std::vector<std::vector<std::pair<std::vector<int>, std::vector<int>>>> elementComboData; // Element combination data
+std::vector<std::string> elementNames; // Name of every element in order
+TTF_Font* font; // Game font (// TODO EXPAND)
 
 template <>
 struct glz::meta<ComboData> {
@@ -51,8 +51,8 @@ bool initComboData(std::string comboDataDir) {
 
 	int id = 0;
 	for (std::pair<std::string, glz::json_t>& elem : root) {
-		elemKeyLookback[elem.first] = id; //Add string ID lookback
-		elementStringIds.push_back(elem.first); //Add to list of string IDs
+		elemKeyLookback[elem.first] = id; // Add string ID lookback
+		elementStringIds.push_back(elem.first); // Add to list of string IDs
 		id++;
 	}
 	for (std::pair<std::string, glz::json_t>& elem : root) {
@@ -88,7 +88,7 @@ bool initComboData(std::string comboDataDir) {
 bool loadElementNames(std::string language) {
 	elementNames.clear();
 	std::string jsonStr = loadFile(textDir+language+".json");
-	std::unordered_map<std::string, std::string> elemStrings; //Name for each element
+	std::unordered_map<std::string, std::string> elemStrings; // Name for each element
 	if (glz::read_json(elemStrings, jsonStr) != glz::error_code::none) {
 		std::cerr << "Error parsing text JSON for language: " << language << '\n';
 		return true;
@@ -98,7 +98,7 @@ bool loadElementNames(std::string language) {
 		if (elemStrings.contains(id)) {
 			elementNames.push_back(elemStrings[id]);
 		} else {
-			elementNames.push_back(id); //Set name to plain ID if no name is specified for the element
+			elementNames.push_back(id); // Set name to plain ID if no name is specified for the element
 		}
 	}
 	return false;

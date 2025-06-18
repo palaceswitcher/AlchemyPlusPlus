@@ -14,11 +14,11 @@
 #include "ElementMenu.hpp"
 #include "Animation.hpp"
 
-std::string elementMenuInputBuf; //Element menu search string
-std::vector<int> matchingElemIDs; //Any elements matching the search query
-int elementMenuSpawnCount; //Number of elements spawned in the element menu. Used to determine where an element should be placed
-std::unordered_map<int, int> elementMenuSelectCounts; //The amount of times each element was selected in the element menu
-bool elementMenuOpen = false; //Whether element menu is opened or not
+std::string elementMenuInputBuf; // Element menu search string
+std::vector<int> matchingElemIDs; // Any elements matching the search query
+int elementMenuSpawnCount; // Number of elements spawned in the element menu. Used to determine where an element should be placed
+std::unordered_map<int, int> elementMenuSelectCounts; // The amount of times each element was selected in the element menu
+bool elementMenuOpen = false; // Whether element menu is opened or not
 
 void UI::openElementMenu() {
 	elementMenuOpen = true;
@@ -26,7 +26,7 @@ void UI::openElementMenu() {
 
 // Get every unlocked element that matches the query
 std::vector<int> getElemSearchResults(std::string query) {
-	std::vector<int> matchingElementIDs; //IDs of every element that matches the query
+	std::vector<int> matchingElementIDs; // IDs of every element that matches the query
 	for (auto id : Progress::GetUnlockedElements()) {
 		if (Game::getElementName(id).find(query) != std::string::npos) {
 			matchingElementIDs.push_back(id);
@@ -43,11 +43,11 @@ std::vector<int> getElemSearchResults(std::string query) {
 void UI::renderElemMenu(SDL_Renderer* ren) {
 	float elemBoxSize = 64.0f;
 	if (elementMenuOpen) {
-		//ImLerp(255.0f, 0.0f, (ImGui::GetTime() - start_time) / duration_seconds)
+		// ImLerp(255.0f, 0.0f, (ImGui::GetTime() - start_time) / duration_seconds)
 		ImGui::SetNextWindowFocus();
 		ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImGui::SetNextWindowSize(viewport->WorkSize, ImGuiCond_Always);
-		ImGui::SetNextWindowPos(viewport->WorkPos, ImGuiCond_Always); //Center window
+		ImGui::SetNextWindowPos(viewport->WorkPos, ImGuiCond_Always); // Center window
 
 		// Style selectables
 		ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(15,15,15,255)); 
@@ -68,13 +68,13 @@ void UI::renderElemMenu(SDL_Renderer* ren) {
 		}
 
 		if (!matchingElemIDs.empty()) {
-			//TODO FIX COLUMN COUNT TO ACCOUNT FOR MARGINS
+			// TODO FIX COLUMN COUNT TO ACCOUNT FOR MARGINS
 			int colCount = floorf(ImGui::GetWindowWidth() / (elemBoxSize+ImGui::GetStyle().WindowPadding.x));
 			for (int i = 0; i < matchingElemIDs.size(); i++) {
 				if (i % colCount != 0) { ImGui::SameLine(); }
 				std::string elemName = Game::getElementName(matchingElemIDs[i]);
 				ImGui::PushID(i);
-				ImVec2 pos = ImGui::GetCursorPos(); //Get position of selectable box so items can be placed on it
+				ImVec2 pos = ImGui::GetCursorPos(); // Get position of selectable box so items can be placed on it
 				if (ImGui::Selectable("##", false, ImGuiSelectableFlags_None, ImVec2(elemBoxSize, elemBoxSize))) {
 					int incAmount = 1;
 					if (ImGui::IsKeyDown(ImGuiKey_ModCtrl)) {
@@ -108,7 +108,7 @@ void UI::renderElemMenu(SDL_Renderer* ren) {
 				auto afterPos = ImGui::GetCursorPos();
 				ImGui::PopID();
 				float elemW, elemH;
-				SDL_Texture* elemTex = Board::loadTexture(ren, matchingElemIDs[i], &elemW, &elemH); //Load texture and its dimensions
+				SDL_Texture* elemTex = Board::loadTexture(ren, matchingElemIDs[i], &elemW, &elemH); // Load texture and its dimensions
 				ImVec2 min = ImGui::GetItemRectMin();
 				ImVec2 max = ImGui::GetItemRectMax();
 				ImVec2 center = ImVec2(min.x + ceil((max.x - min.x - elemW) * 0.5f), min.y + (elemBoxSize * 0.125f));
@@ -135,7 +135,7 @@ void UI::renderElemMenu(SDL_Renderer* ren) {
 		}
 		ImGui::PopStyleColor();
 		ImGui::PopStyleColor();
-		ImGui::PopStyleColor(); //Pop selectable styles
+		ImGui::PopStyleColor(); // Pop selectable styles
 		ImGui::End();
 	// Only render everything else when the menu is closed
 	} else {
@@ -144,8 +144,8 @@ void UI::renderElemMenu(SDL_Renderer* ren) {
 				Board::spawnDraggable(ren, 288, 208, pair.first);
 			}
 		}
-		elementMenuSpawnCount = 0; //Reset spawned element count when the element menu is closed
+		elementMenuSpawnCount = 0; // Reset spawned element count when the element menu is closed
 		matchingElemIDs.clear();
-		elementMenuSelectCounts.clear(); //Clear element selection counter
+		elementMenuSelectCounts.clear(); // Clear element selection counter
 	}
 }

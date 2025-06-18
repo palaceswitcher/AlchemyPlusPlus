@@ -14,7 +14,7 @@ public:
 	DraggableElement() : Sprite() {};
 	DraggableElement(SDL_Renderer* ren, int elemId, int mX, int mY);
 	int id;
-	int z = 0; //Z-index
+	int z = 0; // Z-index
 	bool queuedForDeletion = false;
 
 	void makeCombo(SDL_Renderer* ren);

@@ -10,9 +10,9 @@ enum AnimationType {
 };
 
 struct Animation {
-	int animFlags; //Properties being modified (bitmask)
-	float end; //Animation end value
-	float duration = 1.0f; //The amount of time to complete the animation in seconds
+	int animFlags; // Properties being modified (bitmask)
+	float end; // Animation end value
+	float duration = 1.0f; // The amount of time to complete the animation in seconds
 };
 
 namespace Anim {

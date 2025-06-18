@@ -5,7 +5,7 @@
 
 class Button : public Sprite {
 public:
-	bool wasClicked = false; //Whether or not a button was clicked on
+	bool wasClicked = false; // Whether or not a button was clicked on
 	bool awaitingResponse();
 	using Sprite::Sprite;
 };

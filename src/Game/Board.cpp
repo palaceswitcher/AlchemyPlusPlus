@@ -5,10 +5,10 @@
 #include <vector>
 #include <memory>
 
-std::vector<std::unique_ptr<DraggableElement>> draggableElems; //List of draggable elements on screen
+std::vector<std::unique_ptr<DraggableElement>> draggableElems; // List of draggable elements on screen
 
 void Board::spawnDraggable(SDL_Renderer* ren, int x, int y, int id) {
-	draggableElems.push_back(std::make_unique<DraggableElement>(ren, id, x, y)); //Add to list of elements
+	draggableElems.push_back(std::make_unique<DraggableElement>(ren, id, x, y)); // Add to list of elements
 }
 
 std::vector<std::unique_ptr<DraggableElement>>* Board::getDraggableElems() {
@@ -22,7 +22,7 @@ void Board::clearQueuedElements(bool& deleteUnfinished) {
 		if (deleteUnfinished && wasDeleted) {
 			deleteUnfinished = false;
 		}
-		return d->queuedForDeletion && d->animQueueEmpty(); //Elements can't be deleted until all animations finish
+		return d->queuedForDeletion && d->animQueueEmpty(); // Elements can't be deleted until all animations finish
 	}
 	), draggableElems.end());
 }

@@ -40,7 +40,7 @@ typedef std::chrono::high_resolution_clock Clock;
 
 int main(int argc, char* argv[])
 {
-	SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"); //Don't disable compositor.
+	SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"); // Don't disable compositor.
 	// SDL Init
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
 		printf("Error: SDL_Init(): %s\n", SDL_GetError());
@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 	SDL_SetWindowMinimumSize(window, 640, 480);
 
 	SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
-	SDL_SetRenderVSync(renderer, 1);
+	SDL_SetRenderVSync(renderer, 1); // VSYNC (TODO: MAKE THIS AN OPTION)
 	if (renderer == nullptr) {
 		SDL_Log("Error: SDL_CreateRenderer(): %s\n", SDL_GetError());;
 		return -1;
@@ -74,16 +74,16 @@ int main(int argc, char* argv[])
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; //Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  //Enable Gamepad Controls
-	ImGui::StyleColorsDark(); //Use dark mode by default
-	ImGui::GetStyle().WindowTitleAlign = ImVec2(0.5f, 0.5f); //Center title bars
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+	ImGui::StyleColorsDark(); // Use dark mode by default
+	ImGui::GetStyle().WindowTitleAlign = ImVec2(0.5f, 0.5f); // Center title bars
 	ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
-	ImGui_ImplSDLRenderer3_Init(renderer); //Init for SDL renderer
+	ImGui_ImplSDLRenderer3_Init(renderer); // Init for SDL renderer
 
 	// Load fonts
-	std::string fontPath = Game::getFontDir() + "Open-Sans.ttf"; //Get font directory
-	ImFont* guiFont = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 16.0f); //Load font in ImGui
+	std::string fontPath = Game::getFontDir() + "Open-Sans.ttf"; // Get font directory
+	ImFont* guiFont = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 16.0f); // Load font in ImGui
 
 	std::string texDir = Game::getTextureDir() + "backgrounds/emptyuniverse.png";
 	SDL_Texture* tex = IMG_LoadTexture(renderer, texDir.c_str());
@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
 
 	// Game loop init
 	SDL_FRect addButtonRect = {DEFAULT_WIDTH/2-32, DEFAULT_HEIGHT-80, 64, 64};
-	Button addButton = Button(addButtonRect, addButtonTex); //Element add button
+	Button addButton = Button(addButtonRect, addButtonTex); // Element add button
 
 	// Spawn default elements
 	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, Game::getElementNumId("air"));
@@ -111,15 +111,15 @@ int main(int argc, char* argv[])
 	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-56, DEFAULT_HEIGHT/2-16, Game::getElementNumId("fire"));
 	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2+24, DEFAULT_HEIGHT/2-16, Game::getElementNumId("water"));
 
-	DraggableElement* selectedElem = NULL; //Currently selected draggable
-	DraggableElement* infoElem = NULL; //Currently selected draggable
+	DraggableElement* selectedElem = NULL; // Currently selected draggable
+	DraggableElement* infoElem = NULL; // Currently selected draggable
 
-	bool leftClickDown = false; //Left click state, used to track drag and drop
-	bool rightClickDown = false; //Middle click state
-	long leftClickTick = 0; //The tick when left was clicked, used to detect double clicks
-	SDL_FPoint mousePos; //Mouse position
-	SDL_Point clickOffset; //Point in the element box clicked relative to its boundary
-	int winWidth, winHeight; //Window size
+	bool leftClickDown = false; // Left click state, used to track drag and drop
+	bool rightClickDown = false; // Middle click state
+	long leftClickTick = 0; // The tick when left was clicked, used to detect double clicks
+	SDL_FPoint mousePos; // Mouse position
+	SDL_Point clickOffset; // Point in the element box clicked relative to its boundary
+	int winWidth, winHeight; // Window size
 
 	auto endTick = Clock::now();
 	double deltaTime = 1.0/60;
@@ -127,26 +127,26 @@ int main(int argc, char* argv[])
 	bool addButtonClicked = false;
 	bool settingsButtonClicked = false;
 
-	bool deleteNeeded = false; //Used to determine if any elements need to be deleted
-	bool zSortNeeded = false; //Used to indicate if elements need to be sorted
-	bool quit = false; //Main loop exit flag
+	bool deleteNeeded = false; // Used to determine if any elements need to be deleted
+	bool zSortNeeded = false; // Used to indicate if elements need to be sorted
+	bool quit = false; // Main loop exit flag
 	bool infoKeyDown = false;
 	while (!quit) {
-		auto startTick = Clock::now(); //Get start tick
-		SDL_GetWindowSize(window, &winWidth, &winHeight); //Get new screen size
+		auto startTick = Clock::now(); // Get start tick
+		SDL_GetWindowSize(window, &winWidth, &winHeight); // Get new screen size
 
 		SDL_Event e;
 		while (SDL_PollEvent(&e)) {
 			ImGui_ImplSDL3_ProcessEvent(&e);
 			if (e.type == SDL_EVENT_QUIT) {
 				quit = true;
-				break; //Close the program if X is clicked
+				break; // Close the program if X is clicked
 			}
 			switch (e.type) {
 			case SDL_EVENT_KEY_DOWN: {
 				if (e.key.scancode == SDL_SCANCODE_I) {
 					infoElem = nullptr;
-					std::vector<DraggableElement*> clickMatches; //Every element that the cursor clicked on
+					std::vector<DraggableElement*> clickMatches; // Every element that the cursor clicked on
 					for (auto& d : *(Board::getDraggableElems())) {
 						if (!d->queuedForDeletion && SDL_PointInRectFloat(&mousePos, &d->box)) {
 							clickMatches.push_back(d.get());
@@ -157,7 +157,7 @@ int main(int argc, char* argv[])
 							return d1->z > d2->z;
 						});
 
-						infoElem = clickMatches.back(); //Select rectangle with highest Z-index
+						infoElem = clickMatches.back(); // Select rectangle with highest Z-index
 					}
 					if (infoElem != nullptr) {
 						std::cout << "ELEM REPORT: " << Game::getElementName(infoElem->id) << '\n';
@@ -177,10 +177,10 @@ int main(int argc, char* argv[])
 				break;
 			}
 			case SDL_EVENT_MOUSE_MOTION: {
-				mousePos = {e.motion.x, e.motion.y}; //Get mouse position
+				mousePos = {e.motion.x, e.motion.y}; // Get mouse position
 				if (leftClickDown && selectedElem != NULL) {
 					selectedElem->box.x = roundf(mousePos.x - clickOffset.x);
-					selectedElem->box.y = roundf(mousePos.y - clickOffset.y); //Update rectangle position while its being dragged
+					selectedElem->box.y = roundf(mousePos.y - clickOffset.y); // Update rectangle position while its being dragged
 				}
 				break;
 			}
@@ -189,10 +189,10 @@ int main(int argc, char* argv[])
 					leftClickDown = false;
 
 					if (selectedElem != NULL) {
-						selectedElem->z++; //Move behind
-						selectedElem->makeCombo(renderer); //See if combination was made with another element
+						selectedElem->z++; // Move behind
+						selectedElem->makeCombo(renderer); // See if combination was made with another element
 						if (!selectedElem->queuedForDeletion) {
-							deleteNeeded = selectedElem->queuedForDeletion = (selectedElem->box.x >= winWidth || selectedElem->box.y >= winHeight); //Delete element if it goes off-screen
+							deleteNeeded = selectedElem->queuedForDeletion = (selectedElem->box.x >= winWidth || selectedElem->box.y >= winHeight); // Delete element if it goes off-screen
 						} else {
 							deleteNeeded = selectedElem->queuedForDeletion;
 						}
@@ -203,8 +203,8 @@ int main(int argc, char* argv[])
 							addButton.wasClicked = true;
 						}
 					}
-					selectedElem = NULL; //Release selected rectangle when left is released
-					zSortNeeded = true; //Re-sort Z-index after element was dropped
+					selectedElem = NULL; // Release selected rectangle when left is released
+					zSortNeeded = true; // Re-sort Z-index after element was dropped
 				}
 				// Remove if right clicked
 				if (rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
@@ -220,7 +220,7 @@ int main(int argc, char* argv[])
 			}
 			case SDL_EVENT_MOUSE_BUTTON_DOWN: {
 				// Get element clicked regardless of mouse button
-				std::vector<DraggableElement*> clickMatches; //Every element that the cursor clicked on
+				std::vector<DraggableElement*> clickMatches; // Every element that the cursor clicked on
 				if (selectedElem == NULL) {
 					for (auto& d : *(Board::getDraggableElems())) {
 						if (!d->queuedForDeletion && SDL_PointInRectFloat(&mousePos, &d->box)) {
@@ -228,13 +228,13 @@ int main(int argc, char* argv[])
 						}
 					}
 					if (!clickMatches.empty()) {
-						zSortNeeded = true; //Z-index will need to be resorted as this element will be moved to the front
+						zSortNeeded = true; // Z-index will need to be resorted as this element will be moved to the front
 						std::stable_sort(clickMatches.begin(), clickMatches.end(), [](DraggableElement* d1, DraggableElement* d2) {
 							return d1->z > d2->z;
 						});
 
-						selectedElem = clickMatches.back(); //Select rectangle with highest Z-index
-						selectedElem->z = 0; //Move to front of z-index
+						selectedElem = clickMatches.back(); // Select rectangle with highest Z-index
+						selectedElem->z = 0; // Move to front of z-index
 					}
 				}
 				if (!leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
@@ -242,7 +242,7 @@ int main(int argc, char* argv[])
 					if (selectedElem == NULL) {
 						if (!clickMatches.empty()) {
 							clickOffset.x = mousePos.x - selectedElem->box.x;
-							clickOffset.y = mousePos.y - selectedElem->box.y; //Get clicked point in element box relative to its boundary
+							clickOffset.y = mousePos.y - selectedElem->box.y; // Get clicked point in element box relative to its boundary
 						} else {
 							// Check if circle around the add button is clicked
 							if (((mousePos.x-(addButton.box.x+32))*(mousePos.x-(addButton.box.x+32)) + (mousePos.y-(addButton.box.y+32))*(mousePos.y-(addButton.box.y+32))) < 32*32) {
@@ -252,10 +252,10 @@ int main(int argc, char* argv[])
 						}
 					} else {
 						clickOffset.x = mousePos.x - selectedElem->box.x;
-						clickOffset.y = mousePos.y - selectedElem->box.y; //Don't look for a new element to select if one is already selected
+						clickOffset.y = mousePos.y - selectedElem->box.y; // Don't look for a new element to select if one is already selected
 					}
 					// Spawn new elements on double click
-					if (SDL_GetTicks() > leftClickTick && SDL_GetTicks() <= leftClickTick + 250) { //Double clicks have to be within 1/4 second of each other
+					if (SDL_GetTicks() > leftClickTick && SDL_GetTicks() <= leftClickTick + 250) { // Double clicks have to be within 1/4 second of each other
 						if (selectedElem == NULL) {
 							Board::spawnDraggable(renderer, mousePos.x, mousePos.y+40, Game::getElementNumId("air"));
 							Board::spawnDraggable(renderer, mousePos.x, mousePos.y-40, Game::getElementNumId("earth"));
@@ -263,11 +263,11 @@ int main(int argc, char* argv[])
 							Board::spawnDraggable(renderer, mousePos.x+40, mousePos.y, Game::getElementNumId("water"));
 						} else {
 							int hSpawnOffset = ((selectedElem->box.x + selectedElem->box.w/2) > mousePos.x) ? -40 : 40;
-							int vSpawnOffset = ((selectedElem->box.y + selectedElem->box.h/2) > mousePos.y) ? -40 : 40; //Duplicate the element to the corner it was clicked
-							Board::spawnDraggable(renderer, selectedElem->box.x+hSpawnOffset, selectedElem->box.y+vSpawnOffset, selectedElem->id); //Duplicate element if it's double clicked
+							int vSpawnOffset = ((selectedElem->box.y + selectedElem->box.h/2) > mousePos.y) ? -40 : 40; // Duplicate the element to the corner it was clicked
+							Board::spawnDraggable(renderer, selectedElem->box.x+hSpawnOffset, selectedElem->box.y+vSpawnOffset, selectedElem->id); // Duplicate element if it's double clicked
 						}
 					}
-					leftClickTick = SDL_GetTicks(); //Get next click tick
+					leftClickTick = SDL_GetTicks(); // Get next click tick
 				}
 
 				if (!rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
@@ -281,8 +281,8 @@ int main(int argc, char* argv[])
 		if (e.type == SDL_EVENT_WINDOW_RESIZED) {
 			int prevWinWidth = winWidth;
 			int prevWinHeight = winHeight;
-			SDL_GetWindowSize(window, &winWidth, &winHeight); //Get new screen size
-			addButton.box = {(float)winWidth/2-32, (float)winHeight-80, 64, 64}; //Position add button to the center of the screen
+			SDL_GetWindowSize(window, &winWidth, &winHeight); // Get new screen size
+			addButton.box = {(float)winWidth/2-32, (float)winHeight-80, 64, 64}; // Position add button to the center of the screen
 			// Adjust draggable elements relative to their previous position
 			for (auto& d : *(Board::getDraggableElems())) {
 				d->box.x = round(d->box.x * (double)winWidth/prevWinWidth);
@@ -299,9 +299,9 @@ int main(int argc, char* argv[])
 			zSortNeeded = false;
 		}
 		// Remove elements that are queued for deletion if needed
-		//if (deleteNeeded) {
+		// if (deleteNeeded) {
 			Board::clearQueuedElements(deleteNeeded);
-		//}
+		// }
 
 		SDL_RenderClear(renderer);
 
@@ -316,50 +316,50 @@ int main(int argc, char* argv[])
 		}
 		UI::renderElemMenu(renderer);
 
-		SDL_RenderTexture(renderer, tex, nullptr, nullptr); //Render background
+		SDL_RenderTexture(renderer, tex, nullptr, nullptr); // Render background
 		addButton.parseAnimations(deltaTime);
 		SDL_FRect addButtonRect = Anim::applyScale(addButton.box, addButton.scale);
-		SDL_RenderTexture(renderer, addButton.texture, nullptr, &addButtonRect); //Render add button
+		SDL_RenderTexture(renderer, addButton.texture, nullptr, &addButtonRect); // Render add button
 
-		//Render text
+		// Render text
 		SDL_FRect versStringRect = {0, 0, versStringTexture.w, versStringTexture.h};
 		SDL_RenderTexture(renderer, versStringTexture.texture, nullptr, &versStringRect);
 
 		std::string elemCountStr = std::format("Elems: {}", Board::getDraggableElems()->size());
 		GFX::renderText(elemCountTexture, renderer, elemCountStr.c_str(), {255,255,255,255});
 		SDL_FRect elemCountBox = {0, winHeight-elemCountTexture.h-12.0f, elemCountTexture.w, elemCountTexture.h};
-		SDL_RenderTexture(renderer, elemCountTexture.texture, nullptr, &elemCountBox); //Draw element count
+		SDL_RenderTexture(renderer, elemCountTexture.texture, nullptr, &elemCountBox); // Draw element count
 
 		std::string fpsStr = std::format("FPS: {:.2f}", 1000/deltaTime);
 		GFX::renderText(fpsDisplayTexture, renderer, fpsStr.c_str(), {255,255,255,255});
 		SDL_FRect fpsStringBox = {0, winHeight-fpsDisplayTexture.h, fpsDisplayTexture.w, fpsDisplayTexture.h};
-		SDL_RenderTexture(renderer, fpsDisplayTexture.texture, nullptr, &fpsStringBox); //Draw fps display
+		SDL_RenderTexture(renderer, fpsDisplayTexture.texture, nullptr, &fpsStringBox); // Draw fps display
 
 		// Render every draggable element
 		for (auto& d : *(Board::getDraggableElems())) {
 			GfxResource elemNameTexture = GFX::getElemNameTexture(renderer, d->id);
 			SDL_FRect elemTextBox = {
-				roundf(d->box.x + (d->box.w - elemNameTexture.w)/2), //Text X position
-				roundf(d->box.y + d->box.h), //Text Y position
+				roundf(d->box.x + (d->box.w - elemNameTexture.w)/2), // Text X position
+				roundf(d->box.y + d->box.h), // Text Y position
 				elemNameTexture.w, elemNameTexture.h
 			};
 			d->parseAnimations(deltaTime);
 			SDL_SetTextureAlphaModFloat(d->texture, d->opacity);
 			SDL_SetTextureAlphaModFloat(elemNameTexture.texture, d->opacity);
-			SDL_FRect scaledRect = Anim::applyScale(d->box, d->scale); //Get scaled rect
+			SDL_FRect scaledRect = Anim::applyScale(d->box, d->scale); // Get scaled rect
 			SDL_RenderTexture(renderer, d->texture, nullptr, &scaledRect);
-			elemTextBox = Anim::applyScale(elemTextBox, d->scale); //Get scaled text rect
+			elemTextBox = Anim::applyScale(elemTextBox, d->scale); // Get scaled text rect
 			SDL_RenderTexture(renderer, elemNameTexture.texture, nullptr, &elemTextBox);
 		}
 
-		ImGui::Render(); //Render ImGui stuff
+		ImGui::Render(); // Render ImGui stuff
 		SDL_SetRenderDrawColorFloat(renderer, 0, 0, 0, 255);
 		ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
 		SDL_RenderPresent(renderer);
 		SDL_RenderClear(renderer);
 
 		endTick = Clock::now();
-		deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(endTick - startTick).count() / 1000.0; //Get the time the frame took in ms
+		deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(endTick - startTick).count() / 1000.0; // Get the time the frame took in ms
 	}
 
 	// Cleanup

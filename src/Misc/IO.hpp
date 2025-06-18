@@ -1,4 +1,4 @@
-#ifndef IO_HPP_ //Include guard
+#ifndef IO_HPP_
 #define IO_HPP_
 #include <stdio.h>
 #include <fstream>
