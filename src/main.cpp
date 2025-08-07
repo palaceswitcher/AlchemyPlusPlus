@@ -12,6 +12,7 @@
 #include "imgui_stdlib.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
+#include "RenderDefs.hpp"
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,7 +20,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <algorithm>
 #include <chrono>
 #include <memory>
 #include <unordered_map>
@@ -38,8 +38,7 @@
 
 typedef std::chrono::high_resolution_clock Clock;
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	SDL_SetHint(SDL_HINT_VIDEO_X11_NET_WM_BYPASS_COMPOSITOR, "0"); // Don't disable compositor.
 	// SDL Init
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
@@ -97,9 +96,8 @@ int main(int argc, char* argv[])
 		return EXIT_FAILURE;
 	}
 	GfxResource fpsDisplayTexture;
-	GfxResource elemCountTexture;
 	GfxResource versStringTexture;
-	GFX::renderText(versStringTexture, renderer, "Alchemy++ alpha v0.4", {255,255,255,255});
+	GFX::renderTextToRes(versStringTexture, renderer, "Alchemy++ alpha v0.4", {255,255,255,255});
 
 	// Game loop init
 	SDL_FRect addButtonRect = {DEFAULT_WIDTH/2-32, DEFAULT_HEIGHT-80, 64, 64};
@@ -326,12 +324,11 @@ int main(int argc, char* argv[])
 		SDL_RenderTexture(renderer, versStringTexture.texture, nullptr, &versStringRect);
 
 		std::string elemCountStr = std::format("Elems: {}", Board::getDraggableElems()->size());
-		GFX::renderText(elemCountTexture, renderer, elemCountStr.c_str(), {255,255,255,255});
-		SDL_FRect elemCountBox = {0, winHeight-elemCountTexture.h-12.0f, elemCountTexture.w, elemCountTexture.h};
-		SDL_RenderTexture(renderer, elemCountTexture.texture, nullptr, &elemCountBox); // Draw element count
+		//GFX::renderText(renderer, elemCountStr, 0, winHeight-12.0f, {255,255,255,255}, ORIGIN_BOTTOM);
+		GFX::renderText(renderer, elemCountStr, winWidth, winHeight, {255,255,255,255}, ORIGIN_BOTTOM|ORIGIN_RIGHT);
 
 		std::string fpsStr = std::format("FPS: {:.2f}", 1000/deltaTime);
-		GFX::renderText(fpsDisplayTexture, renderer, fpsStr.c_str(), {255,255,255,255});
+		GFX::renderTextToRes(fpsDisplayTexture, renderer, fpsStr.c_str(), {255,255,255,255});
 		SDL_FRect fpsStringBox = {0, winHeight-fpsDisplayTexture.h, fpsDisplayTexture.w, fpsDisplayTexture.h};
 		SDL_RenderTexture(renderer, fpsDisplayTexture.texture, nullptr, &fpsStringBox); // Draw fps display
 

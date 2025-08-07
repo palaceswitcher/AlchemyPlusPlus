@@ -29,8 +29,8 @@ DraggableElement::DraggableElement(SDL_Renderer* ren, int elemId, int mX, int mY
 	z = 1;
 	id = elemId;
 
-	opacity = 0.0f;
-	animQueue.push_back({ANIM_OPACITY, 1.0f, 0.25f}); // Set up animation
+	scale = 0.0f;
+	animQueue.push_back({ANIM_SCALE, 1.0f, 0.25f}); // Set up animation
 }
 
 // Checks if two elements are colliding and combines them if possible
