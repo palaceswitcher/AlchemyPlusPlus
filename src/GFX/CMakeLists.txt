@@ -6,6 +6,8 @@ add_library (GFX
 	Rendering.cpp)
 
 target_link_libraries(GFX PRIVATE Game)
+target_link_libraries(GFX PRIVATE SDL3::SDL3)
+target_link_libraries(GFX PRIVATE SDL3::SDL3 SDL3_ttf::SDL3_ttf)
 
 install (TARGETS GFX DESTINATION bin)
 install (FILES Animation.hpp DESTINATION include)
