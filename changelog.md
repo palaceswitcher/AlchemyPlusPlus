@@ -3,6 +3,7 @@ Information on historical builds from before this was public may be missing or i
 ### Alpha v0.4 (LATEST)
 - Specific elements can now be spawned via the element menu.
 - Starter elements now spawn in the center.
+- More elements have textures.
 - Elements now despawn when dragged off-screen.
 - Resizing the window will now adjust the position of elements.
 - Double clicking an element now spawns the duplicate differently, spawning at at twice the distance from the origin that it was clicked on.
