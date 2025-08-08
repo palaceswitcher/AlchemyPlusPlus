@@ -48,6 +48,7 @@ add_library(ImGui
 target_link_libraries(ImGui SDL3::SDL3)
 
 # Include source directories and add executable
+include_directories(src/Core)
 include_directories(src/GFX)
 include_directories(src/Game)
 include_directories(src/Misc)
@@ -56,12 +57,13 @@ include_directories(include/imgui)
 include_directories(include/imgui/misc/cpp)
 include_directories(include/imgui/backends)
 add_subdirectory(include/glaze)
+add_subdirectory(src/Core)
 add_subdirectory(src/GFX)
 add_subdirectory(src/Game)
 add_subdirectory(src/Misc)
 add_subdirectory(src/UI)
 
-add_executable(AlchemyPlusPlus src/main.cpp) #Main file
+add_executable(AlchemyPlusPlus src/Core/Main.cpp) #Main file
 
 if(WIN32)
 	target_link_options(AlchemyPlusPlus PRIVATE "-mwindows") #Disable console pop-up
@@ -73,6 +75,7 @@ target_link_libraries(AlchemyPlusPlus SDL3::SDL3 SDL3_image::SDL3_image)
 target_link_libraries(AlchemyPlusPlus SDL3::SDL3 SDL3_ttf::SDL3_ttf)
 target_link_libraries(AlchemyPlusPlus ImGui)
 target_link_libraries(AlchemyPlusPlus glaze::glaze)
+target_link_libraries(AlchemyPlusPlus Core)
 target_link_libraries(AlchemyPlusPlus GFX)
 target_link_libraries(AlchemyPlusPlus Game)
 target_link_libraries(AlchemyPlusPlus Misc)
