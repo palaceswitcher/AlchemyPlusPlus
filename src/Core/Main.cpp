@@ -275,20 +275,21 @@ int main(int argc, char* argv[]) {
 				}
 				break;
 			}
+			// Respond to window resize
+			case SDL_EVENT_WINDOW_RESIZED: {
+				int prevWinWidth = winWidth;
+				int prevWinHeight = winHeight;
+				SDL_GetWindowSize(window, &winWidth, &winHeight); // Get new screen size
+				addButton.box = {(float)winWidth/2-32, (float)winHeight-80, 64, 64}; // Position add button to the center of the screen
+				// Adjust draggable elements relative to their previous position
+				for (auto& d : *(Board::getDraggableElems())) {
+					d->box.x = round(d->box.x * (double)winWidth/prevWinWidth);
+					d->box.y = round(d->box.y * (double)winHeight/prevWinHeight);
+				}
+			}
 			}
 		}
-		// Respond to window resize
-		if (e.type == SDL_EVENT_WINDOW_RESIZED) {
-			int prevWinWidth = winWidth;
-			int prevWinHeight = winHeight;
-			SDL_GetWindowSize(window, &winWidth, &winHeight); // Get new screen size
-			addButton.box = {(float)winWidth/2-32, (float)winHeight-80, 64, 64}; // Position add button to the center of the screen
-			// Adjust draggable elements relative to their previous position
-			for (auto& d : *(Board::getDraggableElems())) {
-				d->box.x = round(d->box.x * (double)winWidth/prevWinWidth);
-				d->box.y = round(d->box.y * (double)winHeight/prevWinHeight);
-			}
-		}
+
 		// Sort draggable elements by z index when animations finish
 		if (zSortNeeded) {
 			auto draggableElems = Board::getDraggableElems();
@@ -326,7 +327,7 @@ int main(int argc, char* argv[]) {
 
 		std::string elemCountStr = std::format("Elems: {}", Board::getDraggableElems()->size());
 		//GFX::renderText(renderer, elemCountStr, 0, winHeight-12.0f, {255,255,255,255}, ORIGIN_BOTTOM);
-		GFX::renderText(renderer, elemCountStr, winWidth, winHeight, {255,255,255,255}, ORIGIN_BOTTOM|ORIGIN_RIGHT);
+		GFX::renderText(renderer, elemCountStr, winWidth, winHeight, {255,255,255,255}, 1.0f, ORIGIN_BOTTOM|ORIGIN_RIGHT);
 
 		std::string fpsStr = std::format("FPS: {:.2f}", 1000/deltaTime);
 		GFX::renderTextToRes(fpsDisplayTexture, renderer, fpsStr.c_str(), {255,255,255,255});
