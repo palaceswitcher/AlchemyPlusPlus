@@ -19,7 +19,7 @@ bool isFocused();
  * @param y Y position
  * @param id Element id
  */
-void spawnDraggable(SDL_Renderer* ren, int x, int y, int id);
+void spawnDraggable(SDL_Renderer* ren, int x, int y, int id, bool allowOverlap = false);
 
 std::vector<std::unique_ptr<DraggableElement>>* getDraggableElems();
 

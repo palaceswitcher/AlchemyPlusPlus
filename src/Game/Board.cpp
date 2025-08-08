@@ -20,7 +20,39 @@ bool Board::isFocused() {
 	return boardFocused;
 }
 
-void Board::spawnDraggable(SDL_Renderer* ren, int x, int y, int id) {
+void Board::spawnDraggable(SDL_Renderer* ren, int x, int y, int id, bool allowOverlap) {
+	int elemW = DraggableElement::getWidth(ren, id);
+	int elemH = DraggableElement::getHeight(ren, id);
+
+	SDL_Window* win = SDL_GetRenderWindow(ren);
+	int winWidth, winHeight;
+	SDL_GetWindowSize(win, &winWidth, &winHeight); // Get window dimensions
+
+	if (!allowOverlap) {
+		for (auto &d : draggableElems) {
+			if (!d->queuedForDeletion) {
+				if (x >= d->box.x && x < d->box.x + d->box.w) {
+
+					x += x - d->box.x;
+				}
+				if (y >= d->box.y && y < d->box.y + d->box.h) {
+					y -= y - d->box.y;
+				}
+			}
+		}
+	}
+
+	if (x + elemW >= winWidth) {
+		x = winWidth - elemW;
+	} else if (x < 0) {
+		x = 0;
+	}
+	if (y + elemH >= winHeight) {
+		y = winHeight - elemH;
+	} else if (y < 0) {
+		y = 0;
+	}
+
 	draggableElems.push_back(std::make_unique<DraggableElement>(ren, id, x, y)); // Add to list of elements
 }
 

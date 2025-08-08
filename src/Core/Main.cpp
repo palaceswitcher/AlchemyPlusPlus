@@ -194,7 +194,9 @@ int main(int argc, char* argv[]) {
 						selectedElem->z++; // Move behind
 						selectedElem->makeCombo(renderer); // See if combination was made with another element
 						if (!selectedElem->queuedForDeletion) {
-							deleteNeeded = selectedElem->queuedForDeletion = (selectedElem->box.x >= winWidth || selectedElem->box.y >= winHeight); // Delete element if it goes off-screen
+							deleteNeeded = selectedElem->queuedForDeletion =
+								(selectedElem->box.x + selectedElem->box.w/2 >= winWidth ||
+								selectedElem->box.y + selectedElem->box.h/2 >= winHeight); // Delete element if it goes off-screen
 						} else {
 							deleteNeeded = selectedElem->queuedForDeletion;
 						}
@@ -262,14 +264,16 @@ int main(int argc, char* argv[]) {
 					// Spawn new elements on double click
 					if (SDL_GetTicks() > leftClickTick && SDL_GetTicks() <= leftClickTick + 250) { // Double clicks have to be within 1/4 second of each other
 						if (selectedElem == NULL) {
-							Board::spawnDraggable(renderer, mousePos.x, mousePos.y+40, Game::getElementNumId("air"));
-							Board::spawnDraggable(renderer, mousePos.x, mousePos.y-40, Game::getElementNumId("earth"));
-							Board::spawnDraggable(renderer, mousePos.x-40, mousePos.y, Game::getElementNumId("fire"));
-							Board::spawnDraggable(renderer, mousePos.x+40, mousePos.y, Game::getElementNumId("water"));
+							Board::spawnDraggable(renderer, mousePos.x, mousePos.y+40, Game::getElementNumId("air"), true);
+							Board::spawnDraggable(renderer, mousePos.x, mousePos.y-40, Game::getElementNumId("earth"), true);
+							Board::spawnDraggable(renderer, mousePos.x-40, mousePos.y, Game::getElementNumId("fire"), true);
+							Board::spawnDraggable(renderer, mousePos.x+40, mousePos.y, Game::getElementNumId("water"), true);
 						} else {
-							int hSpawnOffset = ((selectedElem->box.x + selectedElem->box.w/2) > mousePos.x) ? -40 : 40;
-							int vSpawnOffset = ((selectedElem->box.y + selectedElem->box.h/2) > mousePos.y) ? -40 : 40; // Duplicate the element to the corner it was clicked
-							Board::spawnDraggable(renderer, selectedElem->box.x+hSpawnOffset, selectedElem->box.y+vSpawnOffset, selectedElem->id); // Duplicate element if it's double clicked
+							int elemCenterX = selectedElem->box.x + selectedElem->box.w / 2;
+							int elemCenterY = selectedElem->box.h + selectedElem->box.h / 2;
+							int spawnPosX = (elemCenterX - mousePos.x) * 2;
+
+							Board::spawnDraggable(renderer, mousePos.x, mousePos.y, selectedElem->id); // Duplicate element if it's double clicked
 						}
 					}
 					leftClickTick = SDL_GetTicks(); // Get next click tick

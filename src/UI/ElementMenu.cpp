@@ -149,7 +149,7 @@ void UI::renderElemMenu(SDL_Renderer* ren) {
 			}
 		}
 
-		float radius = 100.f;
+		float radius = 64.f;
 		float circumference = 2*M_PI*radius; // Circumference of current spawn ring
 
 		int e = 0; // Current element index (TODO: OPTIMIZE THIS)
@@ -161,19 +161,19 @@ void UI::renderElemMenu(SDL_Renderer* ren) {
 				centerX /= 2;
 				centerY /= 2;
 
-				float theta = 2*M_PI * e / roundf(circumference / 32.0f);
-				if (roundf(circumference / 32.0f) > elementCount) {
+				float theta = 2*M_PI * e / roundf(circumference / 48.0f);
+				if (roundf(circumference / 48.0f) > elementCount) {
 					theta = 2*M_PI * e / (elementCount);
 				}
 
 				float x = centerX + radius * cosf(theta);
 				float y = centerY + radius * sinf(theta);
 
-				Board::spawnDraggable(ren, x - 16, y - 16, pair.first);
+				Board::spawnDraggable(ren, x - 16, y - 16, pair.first, true);
 
 				e++;
 				// Make another ring if needed
-				if (circumference / 32.0f < e) {
+				if (circumference / 48.0f < e) {
 					elementCount -= e;
 					e = 0;
 					radius += 48.0f; // Update radius for new ring

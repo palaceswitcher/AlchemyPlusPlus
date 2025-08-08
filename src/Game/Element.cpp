@@ -33,7 +33,6 @@ DraggableElement::DraggableElement(SDL_Renderer* ren, int elemId, int mX, int mY
 	animQueue.push_back({ANIM_SCALE, 1.0f, 0.25f}); // Set up animation
 }
 
-// Checks if two elements are colliding and combines them if possible
 void DraggableElement::makeCombo(SDL_Renderer* ren) {
 	std::vector<std::unique_ptr<DraggableElement>>* draggableElems = Board::getDraggableElems();
 
@@ -95,11 +94,22 @@ void DraggableElement::makeCombo(SDL_Renderer* ren) {
 			for (int i = 0; i < resultElems.size(); i++) {
 				int newX = minX + ((i+1) * (maxX-minX) / (resultElems.size()+1)); // TODO POSITION THEM SO THEY CANNOT OVERLAP
 				int newY = minY + ((i+1) * (maxY-minY) / (resultElems.size()+1)); // Position new elements between the combined elements
-				Board::spawnDraggable(ren, newX, newY, resultElems[i]); // Add elements to screen
+				Board::spawnDraggable(ren, newX, newY, resultElems[i], true); // Add elements to screen
 				Progress::UnlockElement(resultElems[i]);
 			}
 		}
 	}
+}
+
+float DraggableElement::getWidth(SDL_Renderer* ren, int id) {
+	float width;
+	Board::loadTexture(ren, id, &width, nullptr);
+	return width;
+}
+float DraggableElement::getHeight(SDL_Renderer* ren, int id) {
+	float height;
+	Board::loadTexture(ren, id, nullptr, &height);
+	return height;
 }
 
 namespace Board {

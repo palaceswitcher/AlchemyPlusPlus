@@ -17,7 +17,11 @@ public:
 	int z = 0; // Z-index
 	bool queuedForDeletion = false;
 
+	// Checks if two elements are colliding and combines them if possible
 	void makeCombo(SDL_Renderer* ren);
+
+	static float getWidth(SDL_Renderer* ren, int id);
+	static float getHeight(SDL_Renderer* ren, int id);
 };
 
 namespace Board {
