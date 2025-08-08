@@ -126,7 +126,6 @@ int main(int argc, char* argv[]) {
 	bool addButtonClicked = false;
 	bool settingsButtonClicked = false;
 
-	bool boardFocused = true; // Is the board focused?
 	bool deleteNeeded = false; // Used to determine if any elements need to be deleted
 	bool zSortNeeded = false; // Used to indicate if elements need to be sorted
 	bool quit = false; // Main loop exit flag
@@ -185,6 +184,9 @@ int main(int argc, char* argv[]) {
 				break;
 			}
 			case SDL_EVENT_MOUSE_BUTTON_UP: {
+				if (!Board::isFocused()) {
+					break;
+				}
 				if (leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
 					leftClickDown = false;
 
@@ -219,6 +221,9 @@ int main(int argc, char* argv[]) {
 				break;
 			}
 			case SDL_EVENT_MOUSE_BUTTON_DOWN: {
+				if (!Board::isFocused()) {
+					break;
+				}
 				// Get element clicked regardless of mouse button
 				std::vector<DraggableElement*> clickMatches; // Every element that the cursor clicked on
 				if (selectedElem == NULL) {
@@ -313,6 +318,7 @@ int main(int argc, char* argv[]) {
 
 		if (addButton.awaitingResponse()) {
 			addButton.wasClicked = false;
+			Board::unfocus();
 			UI::openElementMenu();
 		}
 		UI::renderElemMenu(renderer);
@@ -326,7 +332,6 @@ int main(int argc, char* argv[]) {
 		SDL_RenderTexture(renderer, versStringTexture.texture, nullptr, &versStringRect);
 
 		std::string elemCountStr = std::format("Elems: {}", Board::getDraggableElems()->size());
-		//GFX::renderText(renderer, elemCountStr, 0, winHeight-12.0f, {255,255,255,255}, ORIGIN_BOTTOM);
 		GFX::renderText(renderer, elemCountStr, winWidth, winHeight, {255,255,255,255}, 1.0f, ORIGIN_BOTTOM|ORIGIN_RIGHT);
 
 		std::string fpsStr = std::format("FPS: {:.2f}", 1000/deltaTime);

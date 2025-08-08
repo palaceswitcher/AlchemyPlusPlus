@@ -7,6 +7,12 @@
 
 namespace Board {
 
+void unfocus();
+void focus();
+
+// Returns true if board is focused
+bool isFocused();
+
 /**
  * Spawns a draggable on the board
  * @param x X position

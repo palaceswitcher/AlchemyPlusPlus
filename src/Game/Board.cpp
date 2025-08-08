@@ -5,7 +5,20 @@
 #include <vector>
 #include <memory>
 
+bool boardFocused = true; // Is the board focused?
 std::vector<std::unique_ptr<DraggableElement>> draggableElems; // List of draggable elements on screen
+
+void Board::unfocus() {
+	boardFocused = false;
+}
+
+void Board::focus() {
+	boardFocused = true;
+}
+
+bool Board::isFocused() {
+	return boardFocused;
+}
 
 void Board::spawnDraggable(SDL_Renderer* ren, int x, int y, int id) {
 	draggableElems.push_back(std::make_unique<DraggableElement>(ren, id, x, y)); // Add to list of elements

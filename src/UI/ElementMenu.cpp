@@ -113,8 +113,10 @@ void UI::renderElemMenu(SDL_Renderer* ren) {
 				ImVec2 max = ImGui::GetItemRectMax();
 				ImVec2 center = ImVec2(min.x + ceil((max.x - min.x - elemW) * 0.5f), min.y + (elemBoxSize * 0.125f));
 				ImDrawList* drawList = ImGui::GetWindowDrawList();
+
 				// Draw icon
 				drawList->AddImage((ImTextureID)(intptr_t) Board::textureIndex[matchingElemIDs[i]], center, ImVec2(center.x + elemW, center.y + elemH));
+
 				// Draw spawn count
 				std::string spawnCountTxt = std::to_string(elementMenuSelectCounts[matchingElemIDs[i]]);
 				ImVec2 textSize = ImGui::CalcTextSize(spawnCountTxt.c_str(), nullptr, false, elemBoxSize);
@@ -139,13 +141,49 @@ void UI::renderElemMenu(SDL_Renderer* ren) {
 		ImGui::End();
 	// Only render everything else when the menu is closed
 	} else {
+		// Get number of elements
+		int elementCount = 0;
 		for (auto &pair : elementMenuSelectCounts) {
 			for (int i = 0; i < pair.second; i++) {
-				Board::spawnDraggable(ren, 288, 208, pair.first);
+				elementCount++;
+			}
+		}
+
+		float radius = 100.f;
+		float circumference = 2*M_PI*radius; // Circumference of current spawn ring
+
+		int e = 0; // Current element index (TODO: OPTIMIZE THIS)
+		for (auto &pair : elementMenuSelectCounts) {
+			for (int i = 0; i < pair.second; i++) {
+				SDL_Window* win = SDL_GetRenderWindow(ren); // Get window
+				int centerX, centerY;
+				SDL_GetWindowSize(win, &centerX, &centerY); // Get screen size (TODO REFACTOR THIS)
+				centerX /= 2;
+				centerY /= 2;
+
+				float theta = 2*M_PI * e / roundf(circumference / 32.0f);
+				if (roundf(circumference / 32.0f) > elementCount) {
+					theta = 2*M_PI * e / (elementCount);
+				}
+
+				float x = centerX + radius * cosf(theta);
+				float y = centerY + radius * sinf(theta);
+
+				Board::spawnDraggable(ren, x - 16, y - 16, pair.first);
+
+				e++;
+				// Make another ring if needed
+				if (circumference / 32.0f < e) {
+					elementCount -= e;
+					e = 0;
+					radius += 48.0f; // Update radius for new ring
+					circumference = 2*M_PI*radius; // Update circumference for new ring
+				}
 			}
 		}
 		elementMenuSpawnCount = 0; // Reset spawned element count when the element menu is closed
 		matchingElemIDs.clear();
 		elementMenuSelectCounts.clear(); // Clear element selection counter
+		Board::focus(); // Refocus board
 	}
 }
