@@ -12,6 +12,7 @@
 #include "imgui_stdlib.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
+#include "Rendering.hpp"
 #include "RenderDefs.hpp"
 #include <iostream>
 #include <stdio.h>
@@ -125,6 +126,7 @@ int main(int argc, char* argv[]) {
 	bool addButtonClicked = false;
 	bool settingsButtonClicked = false;
 
+	bool boardFocused = true; // Is the board focused?
 	bool deleteNeeded = false; // Used to determine if any elements need to be deleted
 	bool zSortNeeded = false; // Used to indicate if elements need to be sorted
 	bool quit = false; // Main loop exit flag
@@ -315,9 +317,8 @@ int main(int argc, char* argv[]) {
 		UI::renderElemMenu(renderer);
 
 		SDL_RenderTexture(renderer, tex, nullptr, nullptr); // Render background
-		addButton.parseAnimations(deltaTime);
-		SDL_FRect addButtonRect = Anim::applyScale(addButton.box, addButton.scale);
-		SDL_RenderTexture(renderer, addButton.texture, nullptr, &addButtonRect); // Render add button
+
+		GFX::renderSprite(renderer, deltaTime, &addButton); // Render add button
 
 		// Render text
 		SDL_FRect versStringRect = {0, 0, versStringTexture.w, versStringTexture.h};
@@ -334,18 +335,26 @@ int main(int argc, char* argv[]) {
 
 		// Render every draggable element
 		for (auto& d : *(Board::getDraggableElems())) {
+			GFX::renderSprite(renderer, deltaTime, d.get());
+
 			GfxResource elemNameTexture = GFX::getElemNameTexture(renderer, d->id);
+			SDL_SetTextureAlphaModFloat(elemNameTexture.texture, d->opacity);
 			SDL_FRect elemTextBox = {
 				roundf(d->box.x + (d->box.w - elemNameTexture.w)/2), // Text X position
 				roundf(d->box.y + d->box.h), // Text Y position
 				elemNameTexture.w, elemNameTexture.h
 			};
-			d->parseAnimations(deltaTime);
-			SDL_SetTextureAlphaModFloat(d->texture, d->opacity);
-			SDL_SetTextureAlphaModFloat(elemNameTexture.texture, d->opacity);
-			SDL_FRect scaledRect = Anim::applyScale(d->box, d->scale); // Get scaled rect
-			SDL_RenderTexture(renderer, d->texture, nullptr, &scaledRect);
-			elemTextBox = Anim::applyScale(elemTextBox, d->scale); // Get scaled text rect
+
+			// Get scaled text rect
+			if (d->scale != 1.0) {
+				int scaledW = (elemTextBox.w * d->scale);
+				int scaledH = (elemTextBox.h * d->scale);
+				elemTextBox.x = roundf(elemTextBox.x + ((elemTextBox.w - scaledW) / 2));
+				elemTextBox.y = roundf(elemTextBox.y + ((elemTextBox.h - scaledH) / 2)); // Scale relative to its center
+				elemTextBox.w = scaledW;
+				elemTextBox.h = scaledH;
+			}
+
 			SDL_RenderTexture(renderer, elemNameTexture.texture, nullptr, &elemTextBox);
 		}
 

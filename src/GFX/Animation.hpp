@@ -15,8 +15,4 @@ struct Animation {
 	float duration = 1.0f; // The amount of time to complete the animation in seconds
 };
 
-namespace Anim {
-SDL_FRect applyScale(SDL_FRect box, float scale);
-}
-
 #endif

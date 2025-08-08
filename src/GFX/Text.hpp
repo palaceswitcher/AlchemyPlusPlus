@@ -15,7 +15,7 @@ namespace GFX {
  * @param flags
  * @param color Text color
  */
-void renderText(SDL_Renderer* ren, std::string text, float x, float y, SDL_Color color, int flags = 0);
+void renderText(SDL_Renderer* ren, std::string text, float x, float y, SDL_Color color, float opacity = 0.0f, int flags = 0);
 
 /**
  * Draws text to a resource

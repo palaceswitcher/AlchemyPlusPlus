@@ -10,7 +10,7 @@
 
 std::unordered_map<int, GfxResource> elementTextTextureBuf; // Every texture for an element's strings
 
-void GFX::renderText(SDL_Renderer* ren, std::string text, float x, float y, SDL_Color color, int flags) {
+void GFX::renderText(SDL_Renderer* ren, std::string text, float x, float y, SDL_Color color, float opacity, int flags) {
 	SDL_Surface* textSurf = TTF_RenderText_Blended(Game::getFont(), text.c_str(), 0, color);
 	GfxResource res(ren, textSurf);
 	SDL_SetTextureScaleMode(res.texture, SDL_SCALEMODE_NEAREST); // Text shouldn't blur when scaled
