@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 project(AlchemyPlusPlus)
 
 # Build options
+option(BUILD_STATICSTD "Statically compile standard library" OFF)
 option(SDL_VENDORED "Use vendored SDL libraries" OFF) #Switch between a system sdl library and a vendored sdl library
 option(BUILD_DEBUG "Create debug build" ON)
 option(NATIVE_OPTIMIZE "Optimize for native CPU" OFF)
@@ -63,11 +64,15 @@ add_subdirectory(src/Game)
 add_subdirectory(src/Misc)
 add_subdirectory(src/UI)
 
-add_executable(AlchemyPlusPlus src/Core/Main.cpp) #Main file
+add_executable(AlchemyPlusPlus src/Core/Main.cpp) # Main file
+
+if (BUILD_STATICSTD)
+	target_link_options(AlchemyPlusPlus PRIVATE -static-libgcc -static-libstdc++)
+endif(BUILD_STATICSTD)
 
 if(WIN32)
-	target_link_options(AlchemyPlusPlus PRIVATE "-mwindows") #Disable console pop-up
-	target_link_options(AlchemyPlusPlus PRIVATE -static) #Statically link non-SDL libraries
+	target_link_options(AlchemyPlusPlus PRIVATE "-mwindows") # Disable console pop-up
+	target_link_options(AlchemyPlusPlus PRIVATE -static) # Statically link non-SDL libraries
 endif(WIN32)
 
 target_link_libraries(AlchemyPlusPlus SDL3::SDL3)
