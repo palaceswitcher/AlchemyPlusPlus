@@ -32,18 +32,17 @@ std::vector<int> getElemSearchResults(std::string query) {
 			matchingElementIDs.push_back(id);
 		}
 	}
-	/*std::copy_if(elementsUnlocked.begin(), elementsUnlocked.end(), std::back_inserter(matchingElementIDs), [query]
-	(std::string const& s) {
-		std::string name = Game::getElementName(s);
-		return name.size() > 0 && name.find(query) != std::string::npos;
-	});*/
 	return matchingElementIDs;
 }
 
 void UI::renderElemMenu(SDL_Renderer* ren) {
 	float elemBoxSize = 64.0f;
 	if (elementMenuOpen) {
-		// ImLerp(255.0f, 0.0f, (ImGui::GetTime() - start_time) / duration_seconds)
+		// Close when escape key is pressed
+		if (ImGui::IsKeyDown(ImGuiKey::ImGuiKey_Escape)) {
+			elementMenuOpen = false;
+		}
+
 		ImGui::SetNextWindowFocus();
 		ImGuiViewport* viewport = ImGui::GetMainViewport();
 		ImGui::SetNextWindowSize(viewport->WorkSize, ImGuiCond_Always);

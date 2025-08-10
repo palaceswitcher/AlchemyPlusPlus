@@ -105,10 +105,10 @@ int main(int argc, char* argv[]) {
 	Button addButton = Button(addButtonRect, addButtonTex); // Element add button
 
 	// Spawn default elements
-	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, Game::getElementNumId("air"));
-	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2-56, Game::getElementNumId("earth"));
-	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-56, DEFAULT_HEIGHT/2-16, Game::getElementNumId("fire"));
-	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2+24, DEFAULT_HEIGHT/2-16, Game::getElementNumId("water"));
+	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, Game::getElementNumId("air"), true);
+	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2-56, Game::getElementNumId("earth"), true);
+	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-56, DEFAULT_HEIGHT/2-16, Game::getElementNumId("fire"), true);
+	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2+24, DEFAULT_HEIGHT/2-16, Game::getElementNumId("water"), true);
 
 	DraggableElement* selectedElem = NULL; // Currently selected draggable
 	DraggableElement* infoElem = NULL; // Currently selected draggable
@@ -269,11 +269,10 @@ int main(int argc, char* argv[]) {
 							Board::spawnDraggable(renderer, mousePos.x-40, mousePos.y, Game::getElementNumId("fire"), true);
 							Board::spawnDraggable(renderer, mousePos.x+40, mousePos.y, Game::getElementNumId("water"), true);
 						} else {
-							int elemCenterX = selectedElem->box.x + selectedElem->box.w / 2;
-							int elemCenterY = selectedElem->box.h + selectedElem->box.h / 2;
-							int spawnPosX = (elemCenterX - mousePos.x) * 2;
+							int x = mousePos.x - selectedElem->box.w;
+							int y = mousePos.y - selectedElem->box.h;
 
-							Board::spawnDraggable(renderer, mousePos.x, mousePos.y, selectedElem->id); // Duplicate element if it's double clicked
+							Board::spawnDraggable(renderer, x, y, selectedElem->id); // Duplicate element if it's double clicked
 						}
 					}
 					leftClickTick = SDL_GetTicks(); // Get next click tick

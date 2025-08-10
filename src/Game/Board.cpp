@@ -31,12 +31,28 @@ void Board::spawnDraggable(SDL_Renderer* ren, int x, int y, int id, bool allowOv
 	if (!allowOverlap) {
 		for (auto &d : draggableElems) {
 			if (!d->queuedForDeletion) {
-				if (x >= d->box.x && x < d->box.x + d->box.w) {
-
-					x += x - d->box.x;
-				}
-				if (y >= d->box.y && y < d->box.y + d->box.h) {
-					y -= y - d->box.y;
+				 // Spawn next to either left or right halves
+				if (x + elemW >= d->box.x && x <= d->box.x + d->box.w &&
+					y + elemH >= d->box.y && y <= d->box.y + d->box.h) {
+					int x1Center = x + elemW/2;
+					int y1Center = y + elemH/2; // Center of spawned element
+					int x2Center = d->box.x + d->box.w/2;
+					int y2Center = d->box.y + d->box.h/2; // Center of colliding element
+					int xDist = x2Center - x1Center;
+					int yDist = y2Center - y1Center;
+					if (abs(xDist) > abs(yDist)) {
+						if (xDist < 0) {
+							x = d->box.x - elemW * 1.5f;
+						} else {
+							x = d->box.x + elemW * 1.5f;
+						}
+					} else {
+						if (yDist < 0) {
+							y = d->box.y - elemH * 1.5f;
+						} else {
+							y = d->box.y + elemH * 1.5f;
+						}
+					}
 				}
 			}
 		}
