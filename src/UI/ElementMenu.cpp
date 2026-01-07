@@ -168,7 +168,7 @@ void UI::renderElemMenu(SDL_Renderer* ren) {
 				float x = centerX + radius * cosf(theta);
 				float y = centerY + radius * sinf(theta);
 
-				Board::spawnDraggable(ren, x - 16, y - 16, pair.first, true);
+				Board::spawnDraggable(ren, x - 16, y - 16, pair.first);
 
 				e++;
 				// Make another ring if needed

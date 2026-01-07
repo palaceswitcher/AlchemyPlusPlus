@@ -94,7 +94,7 @@ void DraggableElement::makeCombo(SDL_Renderer* ren) {
 			for (int i = 0; i < resultElems.size(); i++) {
 				int newX = minX + ((i+1) * (maxX-minX) / (resultElems.size()+1)); // TODO POSITION THEM SO THEY CANNOT OVERLAP
 				int newY = minY + ((i+1) * (maxY-minY) / (resultElems.size()+1)); // Position new elements between the combined elements
-				Board::spawnDraggable(ren, newX, newY, resultElems[i], true); // Add elements to screen
+				Board::spawnDraggable(ren, newX, newY, resultElems[i]); // Add elements to screen
 				Progress::UnlockElement(resultElems[i]);
 			}
 		}

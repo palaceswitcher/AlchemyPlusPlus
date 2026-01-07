@@ -4,9 +4,24 @@
 #include <algorithm>
 #include <vector>
 #include <memory>
+#include <cmath>
 
 bool boardFocused = true; // Is the board focused?
 std::vector<std::unique_ptr<DraggableElement>> draggableElems; // List of draggable elements on screen
+DraggableElement* selectedElem;
+
+void Board::deselectElem() {
+	selectedElem = nullptr;
+}
+bool Board::elemSelected() {
+	return selectedElem != nullptr;
+}
+DraggableElement* Board::getSelectedElem() {
+	return selectedElem;
+}
+void Board::selectElem(DraggableElement* elem) {
+	selectedElem = elem;
+}
 
 void Board::unfocus() {
 	boardFocused = false;
@@ -20,43 +35,13 @@ bool Board::isFocused() {
 	return boardFocused;
 }
 
-void Board::spawnDraggable(SDL_Renderer* ren, int x, int y, int id, bool allowOverlap) {
+void Board::spawnDraggable(SDL_Renderer* ren, int x, int y, int id) {
 	int elemW = DraggableElement::getWidth(ren, id);
 	int elemH = DraggableElement::getHeight(ren, id);
 
 	SDL_Window* win = SDL_GetRenderWindow(ren);
 	int winWidth, winHeight;
 	SDL_GetWindowSize(win, &winWidth, &winHeight); // Get window dimensions
-
-	if (!allowOverlap) {
-		for (auto &d : draggableElems) {
-			if (!d->queuedForDeletion) {
-				 // Spawn next to either left or right halves
-				if (x + elemW >= d->box.x && x <= d->box.x + d->box.w &&
-					y + elemH >= d->box.y && y <= d->box.y + d->box.h) {
-					int x1Center = x + elemW/2;
-					int y1Center = y + elemH/2; // Center of spawned element
-					int x2Center = d->box.x + d->box.w/2;
-					int y2Center = d->box.y + d->box.h/2; // Center of colliding element
-					int xDist = x2Center - x1Center;
-					int yDist = y2Center - y1Center;
-					if (abs(xDist) > abs(yDist)) {
-						if (xDist < 0) {
-							x = d->box.x - elemW * 1.5f;
-						} else {
-							x = d->box.x + elemW * 1.5f;
-						}
-					} else {
-						if (yDist < 0) {
-							y = d->box.y - elemH * 1.5f;
-						} else {
-							y = d->box.y + elemH * 1.5f;
-						}
-					}
-				}
-			}
-		}
-	}
 
 	if (x + elemW >= winWidth) {
 		x = winWidth - elemW;
