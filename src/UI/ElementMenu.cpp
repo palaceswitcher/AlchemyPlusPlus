@@ -5,6 +5,7 @@
 #include "imgui_impl_sdlrenderer3.h"
 #include "Board.hpp"
 #include "Animation.hpp"
+#include "GraphicsContext.hpp"
 #include "Progress.hpp"
 #include <string>
 #include <cmath>
@@ -35,7 +36,7 @@ std::vector<int> getElemSearchResults(std::string query) {
 	return matchingElementIDs;
 }
 
-void UI::renderElemMenu(SDL_Renderer* ren) {
+void UI::renderElemMenu() {
 	float elemBoxSize = 64.0f;
 	if (elementMenuOpen) {
 		// Close when escape key is pressed
@@ -107,7 +108,7 @@ void UI::renderElemMenu(SDL_Renderer* ren) {
 				auto afterPos = ImGui::GetCursorPos();
 				ImGui::PopID();
 				float elemW, elemH;
-				SDL_Texture* elemTex = Board::loadTexture(ren, matchingElemIDs[i], &elemW, &elemH); // Load texture and its dimensions
+				SDL_Texture* elemTex = Board::loadTexture(matchingElemIDs[i], &elemW, &elemH); // Load texture and its dimensions
 				ImVec2 min = ImGui::GetItemRectMin();
 				ImVec2 max = ImGui::GetItemRectMax();
 				ImVec2 center = ImVec2(min.x + ceil((max.x - min.x - elemW) * 0.5f), min.y + (elemBoxSize * 0.125f));
@@ -154,9 +155,8 @@ void UI::renderElemMenu(SDL_Renderer* ren) {
 		int e = 0; // Current element index (TODO: OPTIMIZE THIS)
 		for (auto &pair : elementMenuSelectCounts) {
 			for (int i = 0; i < pair.second; i++) {
-				SDL_Window* win = SDL_GetRenderWindow(ren); // Get window
-				int centerX, centerY;
-				SDL_GetWindowSize(win, &centerX, &centerY); // Get screen size (TODO REFACTOR THIS)
+				int centerX = GFX::getWindowWidth();
+				int centerY = GFX::getWindowHeight();
 				centerX /= 2;
 				centerY /= 2;
 
@@ -168,7 +168,7 @@ void UI::renderElemMenu(SDL_Renderer* ren) {
 				float x = centerX + radius * cosf(theta);
 				float y = centerY + radius * sinf(theta);
 
-				Board::spawnDraggable(ren, x - 16, y - 16, pair.first);
+				Board::spawnDraggable(x - 16, y - 16, pair.first);
 
 				e++;
 				// Make another ring if needed

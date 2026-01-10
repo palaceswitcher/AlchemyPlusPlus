@@ -1,9 +1,10 @@
 #include "Rendering.hpp"
 #include "Sprite.hpp"
+#include "GraphicsContext.hpp"
 #include <cmath>
 #include <SDL3/SDL.h>
 
-void GFX::renderSprite(SDL_Renderer* ren, double deltaTime, Sprite* spr) {
+void GFX::renderSprite(double deltaTime, Sprite* spr) {
 	spr->parseAnimations(deltaTime);
 	SDL_SetTextureAlphaModFloat(spr->texture, spr->opacity);
 	SDL_FRect scaledRect = spr->box; // Scaled rectangle
@@ -17,5 +18,5 @@ void GFX::renderSprite(SDL_Renderer* ren, double deltaTime, Sprite* spr) {
 		scaledRect.h = scaledH;
 	}
 
-	SDL_RenderTexture(ren, spr->texture, nullptr, &scaledRect);
+	SDL_RenderTexture(GFX::renderer, spr->texture, nullptr, &scaledRect);
 }

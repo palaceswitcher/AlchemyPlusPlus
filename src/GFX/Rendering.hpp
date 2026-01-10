@@ -4,7 +4,7 @@
 #include "Sprite.hpp"
 
 namespace GFX {
-void renderSprite(SDL_Renderer* ren, double deltaTime, Sprite* spr);
+void renderSprite(double deltaTime, Sprite* spr);
 }
 
 #endif

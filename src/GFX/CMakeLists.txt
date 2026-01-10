@@ -3,7 +3,8 @@ add_library (GFX
 	Button.cpp
 	Resource.cpp
 	Text.cpp
-	Rendering.cpp)
+	Rendering.cpp
+	GraphicsContext.cpp)
 
 target_link_libraries(GFX PRIVATE Game)
 target_link_libraries(GFX PRIVATE SDL3::SDL3)
@@ -15,3 +16,4 @@ install (FILES Button.hpp DESTINATION include)
 install (FILES Resource.hpp DESTINATION include)
 install (FILES Text.hpp DESTINATION include)
 install (FILES Rendering.hpp DESTINATION include)
+install (FILES GraphicsContext.hpp DESTINATION include)

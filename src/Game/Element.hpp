@@ -12,21 +12,21 @@
 class DraggableElement : public Sprite {
 public:
 	DraggableElement() : Sprite() {};
-	DraggableElement(SDL_Renderer* ren, int elemId, int mX, int mY);
+	DraggableElement(int elemId, int mX, int mY);
 	int id;
 	int z = 0; // Z-index
 	bool queuedForDeletion = false;
 
 	// Checks if two elements are colliding and combines them if possible
-	void makeCombo(SDL_Renderer* ren);
+	void makeCombo();
 
-	static float getWidth(SDL_Renderer* ren, int id);
-	static float getHeight(SDL_Renderer* ren, int id);
+	static float getWidth(int id);
+	static float getHeight(int id);
 };
 
 namespace Board {
 	extern std::unordered_map<int, SDL_Texture*> textureIndex;
-	SDL_Texture* loadTexture(SDL_Renderer* ren, int id, float* width, float* height);
+	SDL_Texture* loadTexture(int id, float* width, float* height);
 }
 
 #endif

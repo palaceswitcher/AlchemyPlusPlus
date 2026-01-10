@@ -13,14 +13,15 @@
 #include "Text.hpp"
 #include "GameHandler.hpp"
 #include "Animation.hpp"
+#include "GraphicsContext.hpp"
 #include "IO.hpp"
 #include "Board.hpp"
 
 // Constructor
-DraggableElement::DraggableElement(SDL_Renderer* ren, int elemId, int mX, int mY) {
+DraggableElement::DraggableElement(int elemId, int mX, int mY) {
 	SDL_Rect newElemBox;
 	float w, h;
-	texture = Board::loadTexture(ren, elemId, &w, &h); // Get texture
+	texture = Board::loadTexture(elemId, &w, &h); // Get texture
 
 	box = {(float)mX, (float)mY, w, h}; // Add box to new element
 	newElemBox.x = mX;
@@ -33,7 +34,7 @@ DraggableElement::DraggableElement(SDL_Renderer* ren, int elemId, int mX, int mY
 	animQueue.push_back({ANIM_SCALE, 1.0f, 0.25f}); // Set up animation
 }
 
-void DraggableElement::makeCombo(SDL_Renderer* ren) {
+void DraggableElement::makeCombo() {
 	std::vector<std::unique_ptr<DraggableElement>>* draggableElems = Board::getDraggableElems();
 
 	auto comboData = Game::getComboData(this->id); // Get combinations for first selected element
@@ -94,21 +95,21 @@ void DraggableElement::makeCombo(SDL_Renderer* ren) {
 			for (int i = 0; i < resultElems.size(); i++) {
 				int newX = minX + ((i+1) * (maxX-minX) / (resultElems.size()+1)); // TODO POSITION THEM SO THEY CANNOT OVERLAP
 				int newY = minY + ((i+1) * (maxY-minY) / (resultElems.size()+1)); // Position new elements between the combined elements
-				Board::spawnDraggable(ren, newX, newY, resultElems[i]); // Add elements to screen
+				Board::spawnDraggable(newX, newY, resultElems[i]); // Add elements to screen
 				Progress::UnlockElement(resultElems[i]);
 			}
 		}
 	}
 }
 
-float DraggableElement::getWidth(SDL_Renderer* ren, int id) {
+float DraggableElement::getWidth(int id) {
 	float width;
-	Board::loadTexture(ren, id, &width, nullptr);
+	Board::loadTexture(id, &width, nullptr);
 	return width;
 }
-float DraggableElement::getHeight(SDL_Renderer* ren, int id) {
+float DraggableElement::getHeight(int id) {
 	float height;
-	Board::loadTexture(ren, id, nullptr, &height);
+	Board::loadTexture(id, nullptr, &height);
 	return height;
 }
 
@@ -116,8 +117,9 @@ namespace Board {
 std::unordered_map<int, SDL_Texture*> textureIndex;
 
 // Loads an element texture from the texture index and optionally returns the width and height
-SDL_Texture* loadTexture(SDL_Renderer* ren, int id, float* width, float* height) {
+SDL_Texture* loadTexture(int id, float* width, float* height) {
 	SDL_Texture* newTexture = NULL;
+	SDL_Renderer* ren = GFX::renderer;
 	if (!textureIndex.contains(id)) {
 		std::string textureName = Game::getTextureDir() + "elems/" + Game::getElementStrId(id) + ".png"; // Get filename for texture
 		newTexture = IMG_LoadTexture(ren, textureName.c_str());

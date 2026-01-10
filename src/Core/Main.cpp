@@ -25,14 +25,15 @@
 #include <memory>
 #include <unordered_map>
 #include <cmath>
+#include "Input.hpp"
 #include "Text.hpp"
 #include "GameHandler.hpp"
 #include "Element.hpp"
 #include "Board.hpp"
 #include "Button.hpp"
 #include "ElementMenu.hpp"
-#include "Sprite.hpp"
 #include "Animation.hpp"
+#include "GraphicsContext.hpp"
 
 #define DEFAULT_WIDTH 800
 #define DEFAULT_HEIGHT 600
@@ -48,21 +49,21 @@ int main(int argc, char* argv[]) {
 	}
 	// Initialize window
 	Uint32 window_flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;
-	SDL_Window* window = SDL_CreateWindow("Alchemy++ alpha v0.4", DEFAULT_WIDTH, DEFAULT_HEIGHT, window_flags);
-	if (window == nullptr) {
+	GFX::window = SDL_CreateWindow("Alchemy++ alpha v0.4", DEFAULT_WIDTH, DEFAULT_HEIGHT, window_flags);
+	if (GFX::window == nullptr) {
 		std::cerr << stderr << "SDL_CreateWindow Error: " << SDL_GetError() << '\n';
 		return -1;
 	}
-	SDL_SetWindowMinimumSize(window, 640, 480);
+	SDL_SetWindowMinimumSize(GFX::window, 640, 480);
 
-	SDL_Renderer* renderer = SDL_CreateRenderer(window, nullptr);
-	SDL_SetRenderVSync(renderer, 1); // VSYNC (TODO: MAKE THIS AN OPTION)
-	if (renderer == nullptr) {
+	GFX::renderer = SDL_CreateRenderer(GFX::window, nullptr);
+	SDL_SetRenderVSync(GFX::renderer, 1); // VSYNC (TODO: MAKE THIS AN OPTION)
+	if (GFX::renderer == nullptr) {
 		SDL_Log("Error: SDL_CreateRenderer(): %s\n", SDL_GetError());;
 		return -1;
 	}
-	SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-	SDL_ShowWindow(window);
+	SDL_SetWindowPosition(GFX::window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+	SDL_ShowWindow(GFX::window);
 
 	TTF_Init();
 	// Load default game
@@ -78,45 +79,40 @@ int main(int argc, char* argv[]) {
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 	ImGui::StyleColorsDark(); // Use dark mode by default
 	ImGui::GetStyle().WindowTitleAlign = ImVec2(0.5f, 0.5f); // Center title bars
-	ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
-	ImGui_ImplSDLRenderer3_Init(renderer); // Init for SDL renderer
+	ImGui_ImplSDL3_InitForSDLRenderer(GFX::window, GFX::renderer);
+	ImGui_ImplSDLRenderer3_Init(GFX::renderer); // Init for SDL renderer
 
 	// Load fonts
 	std::string fontPath = Game::getFontDir() + "Open-Sans.ttf"; // Get font directory
 	ImFont* guiFont = io.Fonts->AddFontFromFileTTF(fontPath.c_str(), 16.0f); // Load font in ImGui
 
 	std::string texDir = Game::getTextureDir() + "backgrounds/emptyuniverse.png";
-	SDL_Texture* tex = IMG_LoadTexture(renderer, texDir.c_str());
+	SDL_Texture* tex = IMG_LoadTexture(GFX::renderer, texDir.c_str());
 	std::string addBtnDir = Game::getTextureDir() + "buttons/addBtn.png";
-	SDL_Texture* addButtonTex = IMG_LoadTexture(renderer, addBtnDir.c_str());
+	SDL_Texture* addButtonTex = IMG_LoadTexture(GFX::renderer, addBtnDir.c_str());
 	if (tex == NULL) {
 		fprintf(stderr, "SDL_CreateTextureFromSurface Error: %s\n", SDL_GetError());
-		SDL_DestroyRenderer(renderer);
-		SDL_DestroyWindow(window);
+		SDL_DestroyRenderer(GFX::renderer);
+		SDL_DestroyWindow(GFX::window);
 		SDL_Quit();
 		return EXIT_FAILURE;
 	}
 	GfxResource fpsDisplayTexture;
 	GfxResource versStringTexture;
-	GFX::renderTextToRes(versStringTexture, renderer, "Alchemy++ alpha v0.4", {255,255,255,255});
+	GFX::renderTextToRes(versStringTexture, "Alchemy++ alpha v0.4", {255,255,255,255});
 
 	// Game loop init
 	SDL_FRect addButtonRect = {DEFAULT_WIDTH/2-32, DEFAULT_HEIGHT-80, 64, 64};
 	Button addButton = Button(addButtonRect, addButtonTex); // Element add button
 
 	// Spawn default elements
-	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, Game::getElementNumId("air"));
-	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2-56, Game::getElementNumId("earth"));
-	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2-56, DEFAULT_HEIGHT/2-16, Game::getElementNumId("fire"));
-	Board::spawnDraggable(renderer, DEFAULT_WIDTH/2+24, DEFAULT_HEIGHT/2-16, Game::getElementNumId("water"));
+	Board::spawnDraggable(DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2+24, Game::getElementNumId("air"));
+	Board::spawnDraggable(DEFAULT_WIDTH/2-16, DEFAULT_HEIGHT/2-56, Game::getElementNumId("earth"));
+	Board::spawnDraggable(DEFAULT_WIDTH/2-56, DEFAULT_HEIGHT/2-16, Game::getElementNumId("fire"));
+	Board::spawnDraggable(DEFAULT_WIDTH/2+24, DEFAULT_HEIGHT/2-16, Game::getElementNumId("water"));
 
 	DraggableElement* infoElem = NULL; // Currently selected draggable
 
-	bool leftClickDown = false; // Left click state, used to track drag and drop
-	bool rightClickDown = false; // Middle click state
-	long leftClickTick = 0; // The tick when left was clicked, used to detect double clicks
-	SDL_FPoint mousePos; // Mouse position
-	SDL_Point clickOffset; // Point in the element box clicked relative to its boundary
 	int winWidth, winHeight; // Window size
 
 	auto endTick = Clock::now();
@@ -124,14 +120,10 @@ int main(int argc, char* argv[]) {
 	// Game flags
 	bool addButtonClicked = false;
 	bool settingsButtonClicked = false;
-
-	bool deleteNeeded = false; // Used to determine if any elements need to be deleted
-	bool zSortNeeded = false; // Used to indicate if elements need to be sorted
 	bool quit = false; // Main loop exit flag
-	bool infoKeyDown = false;
 	while (!quit) {
 		auto startTick = Clock::now(); // Get start tick
-		SDL_GetWindowSize(window, &winWidth, &winHeight); // Get new screen size
+		SDL_GetWindowSize(GFX::window, &winWidth, &winHeight); // Get new screen size
 
 		SDL_Event e;
 		while (SDL_PollEvent(&e)) {
@@ -140,176 +132,12 @@ int main(int argc, char* argv[]) {
 				quit = true;
 				break; // Close the program if X is clicked
 			}
-			switch (e.type) {
-			case SDL_EVENT_KEY_DOWN: {
-				if (e.key.scancode == SDL_SCANCODE_I) {
-					infoElem = nullptr;
-					std::vector<DraggableElement*> clickMatches; // Every element that the cursor clicked on
-					for (auto& d : *(Board::getDraggableElems())) {
-						if (!d->queuedForDeletion && SDL_PointInRectFloat(&mousePos, &d->box)) {
-							clickMatches.push_back(d.get());
-						}
-					}
-					if (!clickMatches.empty()) {
-						std::stable_sort(clickMatches.begin(), clickMatches.end(), [](DraggableElement* d1, DraggableElement* d2) {
-							return d1->z > d2->z;
-						});
-
-						infoElem = clickMatches.back(); // Select rectangle with highest Z-index
-					}
-					if (infoElem != nullptr) {
-						std::cout << "ELEM REPORT: " << Game::getElementName(infoElem->id) << '\n';
-						std::cout << std::format("Elem[{}x{}] at {}, {}", infoElem->box.w, infoElem->box.h, infoElem->box.x, infoElem->box.y) << '\n';
-					}
-				} else if (e.key.scancode == SDL_SCANCODE_F1) {
-					for (auto& d : *(Board::getDraggableElems())) {
-						d->scale = 1.0f;
-					}
-				} else if (e.key.scancode == SDL_SCANCODE_F2) {
-					for (auto& d : *(Board::getDraggableElems())) {
-						d->addAnim({ANIM_SCALE, 0.0f, 0.25f});
-						d->queuedForDeletion = true;
-						deleteNeeded = true;
-					};
-				}
-				break;
-			}
-			case SDL_EVENT_MOUSE_MOTION: {
-				mousePos = {e.motion.x, e.motion.y}; // Get mouse position
-				if (leftClickDown && Board::elemSelected()) {
-					Board::getSelectedElem()->box.x = roundf(mousePos.x - clickOffset.x);
-					Board::getSelectedElem()->box.y = roundf(mousePos.y - clickOffset.y); // Update rectangle position while its being dragged
-				}
-				break;
-			}
-			case SDL_EVENT_MOUSE_BUTTON_UP: {
-				if (!Board::isFocused()) {
-					break;
-				}
-				if (leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
-					leftClickDown = false;
-
-					if (Board::elemSelected()) {
-						Board::getSelectedElem()->z++; // Move behind
-						Board::getSelectedElem()->makeCombo(renderer); // See if combination was made with another element
-						if (!Board::getSelectedElem()->queuedForDeletion) {
-							deleteNeeded = Board::getSelectedElem()->queuedForDeletion =
-								(Board::getSelectedElem()->box.x + Board::getSelectedElem()->box.w/2 >= winWidth ||
-								Board::getSelectedElem()->box.y + Board::getSelectedElem()->box.h/2 >= winHeight); // Delete element if it goes off-screen
-						} else {
-							deleteNeeded = Board::getSelectedElem()->queuedForDeletion;
-						}
-					} else {
-						if (addButtonClicked)  {
-							addButtonClicked = false;
-							addButton.addAnim({ANIM_SCALE, 1.0f, 0.1875f});
-							addButton.wasClicked = true;
-						}
-					}
-					Board::deselectElem(); // Release selected rectangle when left is released
-					zSortNeeded = true; // Re-sort Z-index after element was dropped
-				}
-				// Remove if right clicked
-				if (rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
-					rightClickDown = false;
-					if (Board::elemSelected()) {
-						Board::getSelectedElem()->addAnim({ANIM_SCALE, 0.0f, 0.25f});
-						Board::getSelectedElem()->queuedForDeletion = true;
-						deleteNeeded = true;
-						Board::deselectElem();
-					}
-				}
-				break;
-			}
-			case SDL_EVENT_MOUSE_BUTTON_DOWN: {
-				if (!Board::isFocused()) {
-					break;
-				}
-				// Get element clicked regardless of mouse button
-				std::vector<DraggableElement*> clickMatches; // Every element that the cursor clicked on
-				if (!Board::elemSelected()) {
-					for (auto& d : *(Board::getDraggableElems())) {
-						if (!d->queuedForDeletion && SDL_PointInRectFloat(&mousePos, &d->box)) {
-							clickMatches.push_back(d.get());
-						}
-					}
-					if (!clickMatches.empty()) {
-						zSortNeeded = true; // Z-index will need to be resorted as this element will be moved to the front
-						std::stable_sort(clickMatches.begin(), clickMatches.end(), [](DraggableElement* d1, DraggableElement* d2) {
-							return d1->z > d2->z;
-						});
-
-						Board::selectElem(clickMatches.back()); // Select rectangle with highest Z-index
-						Board::getSelectedElem()->z = 0; // Move to front of z-index
-					}
-				}
-				if (!leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
-					leftClickDown = true;
-					if (!Board::elemSelected()) {
-						if (!clickMatches.empty()) {
-							clickOffset.x = mousePos.x - Board::getSelectedElem()->box.x;
-							clickOffset.y = mousePos.y - Board::getSelectedElem()->box.y; // Get clicked point in element box relative to its boundary
-						} else {
-							// Check if circle around the add button is clicked
-							if (((mousePos.x-(addButton.box.x+32))*(mousePos.x-(addButton.box.x+32)) + (mousePos.y-(addButton.box.y+32))*(mousePos.y-(addButton.box.y+32))) < 32*32) {
-								addButton.addAnim({ANIM_SCALE, 1.25f, 0.1875f});
-								addButtonClicked = true;
-							}
-						}
-					} else {
-						clickOffset.x = mousePos.x - Board::getSelectedElem()->box.x;
-						clickOffset.y = mousePos.y - Board::getSelectedElem()->box.y; // Don't look for a new element to select if one is already selected
-					}
-					// Spawn new elements on double click
-					if (SDL_GetTicks() > leftClickTick && SDL_GetTicks() <= leftClickTick + 250) { // Double clicks have to be within 1/4 second of each other
-						if (!Board::elemSelected()) {
-							Board::spawnDraggable(renderer, mousePos.x, mousePos.y+40, Game::getElementNumId("air"));
-							Board::spawnDraggable(renderer, mousePos.x, mousePos.y-40, Game::getElementNumId("earth"));
-							Board::spawnDraggable(renderer, mousePos.x-40, mousePos.y, Game::getElementNumId("fire"));
-							Board::spawnDraggable(renderer, mousePos.x+40, mousePos.y, Game::getElementNumId("water"));
-						} else {
-							Board::spawnDraggable(renderer, mousePos.x, mousePos.y, Board::getSelectedElem()->id); // Duplicate element if it's double clicked
-							Board::deselectElem();
-						}
-					}
-					leftClickTick = SDL_GetTicks(); // Get next click tick
-				}
-
-				if (!rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
-					rightClickDown = true;
-				}
-				break;
-			}
-			// Respond to window resize
-			case SDL_EVENT_WINDOW_RESIZED: {
-				int prevWinWidth = winWidth;
-				int prevWinHeight = winHeight;
-				SDL_GetWindowSize(window, &winWidth, &winHeight); // Get new screen size
-				addButton.box = {(float)winWidth/2-32, (float)winHeight-80, 64, 64}; // Position add button to the center of the screen
-				// Adjust draggable elements relative to their previous position
-				for (auto& d : *(Board::getDraggableElems())) {
-					d->box.x = round(d->box.x * (double)winWidth/prevWinWidth);
-					d->box.y = round(d->box.y * (double)winHeight/prevWinHeight);
-				}
-			}
-			}
+			handleInput(e);
 		}
 
-		// Sort draggable elements by z index when animations finish
-		if (zSortNeeded) {
-			auto draggableElems = Board::getDraggableElems();
-			std::stable_sort(draggableElems->begin(), draggableElems->end(), []
-			(const std::unique_ptr<DraggableElement> &d1, const std::unique_ptr<DraggableElement> &d2) {
-				return d1->z > d2->z;
-			});
-			zSortNeeded = false;
-		}
-		// Remove elements that are queued for deletion if needed
-		// if (deleteNeeded) {
-			Board::clearQueuedElements(deleteNeeded);
-		// }
+		Board::updateElems();
 
-		SDL_RenderClear(renderer);
+		SDL_RenderClear(GFX::renderer);
 
 		// Start the Dear ImGui frame
 		ImGui_ImplSDLRenderer3_NewFrame();
@@ -321,29 +149,29 @@ int main(int argc, char* argv[]) {
 			Board::unfocus();
 			UI::openElementMenu();
 		}
-		UI::renderElemMenu(renderer);
+		UI::renderElemMenu();
 
-		SDL_RenderTexture(renderer, tex, nullptr, nullptr); // Render background
+		SDL_RenderTexture(GFX::renderer, tex, nullptr, nullptr); // Render background
 
-		GFX::renderSprite(renderer, deltaTime, &addButton); // Render add button
+		GFX::renderSprite(deltaTime, &addButton); // Render add button
 
 		// Render text
 		SDL_FRect versStringRect = {0, 0, versStringTexture.w, versStringTexture.h};
-		SDL_RenderTexture(renderer, versStringTexture.texture, nullptr, &versStringRect);
+		SDL_RenderTexture(GFX::renderer, versStringTexture.texture, nullptr, &versStringRect);
 
 		std::string elemCountStr = std::format("Elems: {}", Board::getDraggableElems()->size());
-		GFX::renderText(renderer, elemCountStr, winWidth, winHeight, {255,255,255,255}, 1.0f, ORIGIN_BOTTOM|ORIGIN_RIGHT);
+		GFX::renderText(elemCountStr, winWidth, winHeight, {255,255,255,255}, 1.0f, ORIGIN_BOTTOM|ORIGIN_RIGHT);
 
 		std::string fpsStr = std::format("FPS: {:.2f}", 1000/deltaTime);
-		GFX::renderTextToRes(fpsDisplayTexture, renderer, fpsStr.c_str(), {255,255,255,255});
+		GFX::renderTextToRes(fpsDisplayTexture, fpsStr.c_str(), {255,255,255,255});
 		SDL_FRect fpsStringBox = {0, winHeight-fpsDisplayTexture.h, fpsDisplayTexture.w, fpsDisplayTexture.h};
-		SDL_RenderTexture(renderer, fpsDisplayTexture.texture, nullptr, &fpsStringBox); // Draw fps display
+		SDL_RenderTexture(GFX::renderer, fpsDisplayTexture.texture, nullptr, &fpsStringBox); // Draw fps display
 
 		// Render every draggable element
 		for (auto& d : *(Board::getDraggableElems())) {
-			GFX::renderSprite(renderer, deltaTime, d.get());
+			GFX::renderSprite(deltaTime, d.get());
 
-			GfxResource elemNameTexture = GFX::getElemNameTexture(renderer, d->id);
+			GfxResource elemNameTexture = GFX::getElemNameTexture(d->id);
 			SDL_SetTextureAlphaModFloat(elemNameTexture.texture, d->opacity);
 			SDL_FRect elemTextBox = {
 				roundf(d->box.x + (d->box.w - elemNameTexture.w)/2), // Text X position
@@ -361,14 +189,14 @@ int main(int argc, char* argv[]) {
 				elemTextBox.h = scaledH;
 			}
 
-			SDL_RenderTexture(renderer, elemNameTexture.texture, nullptr, &elemTextBox);
+			SDL_RenderTexture(GFX::renderer, elemNameTexture.texture, nullptr, &elemTextBox);
 		}
 
 		ImGui::Render(); // Render ImGui stuff
-		SDL_SetRenderDrawColorFloat(renderer, 0, 0, 0, 255);
-		ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), renderer);
-		SDL_RenderPresent(renderer);
-		SDL_RenderClear(renderer);
+		SDL_SetRenderDrawColorFloat(GFX::renderer, 0, 0, 0, 255);
+		ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), GFX::renderer);
+		SDL_RenderPresent(GFX::renderer);
+		SDL_RenderClear(GFX::renderer);
 
 		endTick = Clock::now();
 		deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(endTick - startTick).count() / 1000.0; // Get the time the frame took in ms
@@ -380,8 +208,8 @@ int main(int argc, char* argv[]) {
 	ImGui::DestroyContext();
 
 	SDL_DestroyTexture(tex);
-	SDL_DestroyRenderer(renderer);
-	SDL_DestroyWindow(window);
+	SDL_DestroyRenderer(GFX::renderer);
+	SDL_DestroyWindow(GFX::window);
 	SDL_Quit();
 
 	return EXIT_SUCCESS;

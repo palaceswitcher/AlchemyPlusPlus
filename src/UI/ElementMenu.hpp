@@ -9,7 +9,7 @@
 std::vector<int> getElemSearchResults(std::string query);
 namespace UI {
 void openElementMenu();
-void renderElemMenu(SDL_Renderer* ren);
+void renderElemMenu();
 }
 
 #endif
