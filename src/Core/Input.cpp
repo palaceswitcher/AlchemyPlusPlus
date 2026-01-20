@@ -20,7 +20,6 @@ void handleInput(const SDL_Event &e) {
 			}
 		} else if (e.key.scancode == SDL_SCANCODE_F2) {
 			for (auto& d : *(Board::getDraggableElems())) {
-				d->addAnim({ANIM_SCALE, 0.0f, 0.25f});
 				Board::deleteElem(d.get());
 			};
 		}
@@ -46,15 +45,15 @@ void handleInput(const SDL_Event &e) {
 				Board::getSelectedElem()->makeCombo(); // See if combination was made with another element
 				if (!Board::getSelectedElem()->queuedForDeletion) {
 					if (Board::getSelectedElem()->box.x + Board::getSelectedElem()->box.w/2 >= GFX::getWindowWidth() ||
-						Board::getSelectedElem()->box.y + Board::getSelectedElem()->box.h/2 >= GFX::getWindowHeight()) {
-							Board::deleteSelectedElem(); // Delete element if it goes off-screen
-						}
+					Board::getSelectedElem()->box.y + Board::getSelectedElem()->box.h/2 >= GFX::getWindowHeight()) {
+						Board::deleteSelectedElem(); // Delete element if it goes off-screen
+					}
 				}
 			} else {
 				// TODO: CODE THIS ELSEWHERE
 				/*if (addButtonClicked)  {
 					addButtonClicked = false;
-					addButton.addAnim({ANIM_SCALE, 1.0f, 0.1875f});
+					addButton.addAnim(ANIM_SCALE, 1.0f, 0.1875f);
 					addButton.wasClicked = true;
 				}*/
 			}
@@ -65,7 +64,6 @@ void handleInput(const SDL_Event &e) {
 		if (rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
 			rightClickDown = false;
 			if (Board::elemSelected()) {
-				Board::getSelectedElem()->addAnim({ANIM_SCALE, 0.0f, 0.25f});
 				Board::deleteSelectedElem();
 				Board::deselectElem();
 			}
@@ -103,7 +101,7 @@ void handleInput(const SDL_Event &e) {
 				} else {
 					// Check if circle around the add button is clicked
 					/*if (((mousePos.x-(addButton.box.x+32))*(mousePos.x-(addButton.box.x+32)) + (mousePos.y-(addButton.box.y+32))*(mousePos.y-(addButton.box.y+32))) < 32*32) {
-						addButton.addAnim({ANIM_SCALE, 1.25f, 0.1875f});
+						addButton.addAnim(ANIM_SCALE, 1.25f, 0.1875f);
 						addButtonClicked = true;
 					}*/
 				}

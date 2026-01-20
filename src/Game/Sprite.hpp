@@ -14,7 +14,7 @@ public:
 	SDL_FRect box;
 
 	// Adds an animation to the front of the animation queue
-	void addAnim(Animation anim);
+	void addAnim(bool animFlags, float end, float duration);
 	Sprite() {};
 	Sprite(SDL_FRect rect, SDL_Texture* tex);
 

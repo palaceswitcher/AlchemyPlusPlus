@@ -79,11 +79,9 @@ void DraggableElement::makeCombo() {
 		if (!resultElems.empty()) {
 			std::vector<int> matchingElemXs = {(int)this->box.x};
 			std::vector<int> matchingElemYs = {(int)this->box.y};
-			this->addAnim({ANIM_SCALE, 0.0f, 0.25f}); // Begin shrinking this element to despawn it
-			this->queuedForDeletion = true;
+			Board::deleteElem(this);
 			for (auto result : matchingElems) {
-				result->addAnim({ANIM_SCALE, 0.0f, 0.25f}); // Shrink all matching elements involved in the combination until they despawn
-				result->queuedForDeletion = true;
+				Board::deleteElem(result);
 				matchingElemXs.push_back(result->box.x);
 				matchingElemYs.push_back(result->box.y);
 			}

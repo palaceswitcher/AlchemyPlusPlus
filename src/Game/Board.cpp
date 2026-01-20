@@ -27,14 +27,12 @@ void Board::selectElem(DraggableElement* elem) {
 }
 
 void Board::deleteElem(DraggableElement* elem) {
+	elem->addAnim(ANIM_SCALE, 0.0f, 0.25f); // Despawn animation
 	isDeleteQueued = true; // This is used to avoid unnecessary deletion checking
 	elem->queuedForDeletion = true;
 }
 void Board::deleteSelectedElem() {
-	isDeleteQueued = true;
-	if (selectedElem != nullptr) {
-		selectedElem->queuedForDeletion = true;
-	}
+	deleteElem(selectedElem);
 }
 
 void Board::queueZSort() {
@@ -91,9 +89,11 @@ void Board::updateElems() {
 	if (isDeleteQueued) {
 		draggableElems.erase(std::remove_if(draggableElems.begin(), draggableElems.end(),
 		[](const std::unique_ptr<DraggableElement> &d) {
-			return d->queuedForDeletion && d->animQueueEmpty(); // Elements can't be deleted until all animations finish
+			bool canDelete = d->queuedForDeletion && d->animQueueEmpty(); // Elements can't be deleted until all animations finish
+
+			isDeleteQueued ^= canDelete; // We don't need to check for queued elements once we know they're deleted
+			return canDelete;
 		}
 		), draggableElems.end());
-		isDeleteQueued = false; // Deletion no longer needed once all elements are deleted
 	}
 }

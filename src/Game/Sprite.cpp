@@ -44,8 +44,8 @@ void Sprite::parseAnimations(double deltaTime) {
 	}
 }
 
-void Sprite::addAnim(Animation anim) {
-	animQueue.insert(animQueue.begin(), anim);
+void Sprite::addAnim(bool animFlags, float end, float duration) {
+	animQueue.insert(animQueue.begin(), {animFlags, end, duration});
 }
 
 Sprite::Sprite(SDL_FRect rect, SDL_Texture* tex) {
