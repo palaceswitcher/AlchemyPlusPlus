@@ -1,6 +1,5 @@
 add_library (Game
 	Board.cpp
-	Sprite.cpp
 	Element.cpp)
 
 target_link_libraries(Game PRIVATE glaze::glaze)
@@ -11,5 +10,4 @@ target_link_libraries(Game PRIVATE GFX)
 
 install(TARGETS Game DESTINATION bin)
 install(FILES Board.hpp DESTINATION include)
-install(FILES Sprite.hpp DESTINATION include)
 install(FILES Element.hpp DESTINATION include)

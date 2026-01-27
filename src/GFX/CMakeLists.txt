@@ -1,5 +1,6 @@
 add_library (GFX
 	Animation.cpp
+	Sprite.cpp
 	Button.cpp
 	Resource.cpp
 	Text.cpp
@@ -12,6 +13,7 @@ target_link_libraries(GFX PRIVATE SDL3::SDL3 SDL3_ttf::SDL3_ttf)
 
 install (TARGETS GFX DESTINATION bin)
 install (FILES Animation.hpp DESTINATION include)
+install (FILES Sprite.hpp DESTINATION include)
 install (FILES Button.hpp DESTINATION include)
 install (FILES Resource.hpp DESTINATION include)
 install (FILES Text.hpp DESTINATION include)

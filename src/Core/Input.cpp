@@ -4,11 +4,35 @@
 #include "GameHandler.hpp"
 #include <cmath>
 
+int pressedKeys = 0;
+int releasedKeys = 0;
+float mouseX = 0.0f;
+float mouseY = 0.0f;
+
 bool leftClickDown = false; // Left click state, used to track drag and drop
 bool rightClickDown = false; // Middle click state
+bool middleClickDown = false;
 long leftClickTick = 0; // The tick when left was clicked, used to detect double clicks
 SDL_FPoint mousePos; // Mouse position
-SDL_Point clickOffset; // Point in the element box clicked relative to its boundary
+
+bool keyPressed(int keys) {
+	return pressedKeys & keys != 0;
+}
+bool keyReleased(int keys) {
+	return releasedKeys & keys != 0;
+}
+
+float getMouseX() {
+	return mouseX;
+}
+float getMouseY() {
+	return mouseY;
+}
+
+long getLastLeftClickTick() {
+	return leftClickTick;
+}
+
 void handleInput(const SDL_Event &e) {
 	int winWidth = GFX::getWindowWidth();
 	int winHeight = GFX::getWindowHeight();
@@ -27,6 +51,8 @@ void handleInput(const SDL_Event &e) {
 	}
 	case SDL_EVENT_MOUSE_MOTION: {
 		mousePos = {e.motion.x, e.motion.y}; // Get mouse position
+		mouseX = e.motion.x;
+		mouseY = e.motion.y;
 		if (leftClickDown && Board::elemSelected()) {
 			Board::getSelectedElem()->box.x = roundf(mousePos.x - clickOffset.x);
 			Board::getSelectedElem()->box.y = roundf(mousePos.y - clickOffset.y); // Update rectangle position while its being dragged
@@ -37,36 +63,16 @@ void handleInput(const SDL_Event &e) {
 		if (!Board::isFocused()) {
 			break;
 		}
-		if (leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
-			leftClickDown = false;
 
-			if (Board::elemSelected()) {
-				Board::getSelectedElem()->z++; // Move behind
-				Board::getSelectedElem()->makeCombo(); // See if combination was made with another element
-				if (!Board::getSelectedElem()->queuedForDeletion) {
-					if (Board::getSelectedElem()->box.x + Board::getSelectedElem()->box.w/2 >= GFX::getWindowWidth() ||
-					Board::getSelectedElem()->box.y + Board::getSelectedElem()->box.h/2 >= GFX::getWindowHeight()) {
-						Board::deleteSelectedElem(); // Delete element if it goes off-screen
-					}
-				}
-			} else {
-				// TODO: CODE THIS ELSEWHERE
-				/*if (addButtonClicked)  {
-					addButtonClicked = false;
-					addButton.addAnim(ANIM_SCALE, 1.0f, 0.1875f);
-					addButton.wasClicked = true;
-				}*/
-			}
-			Board::deselectElem(); // Release selected rectangle when left is released
-			Board::queueZSort();
-		}
-		// Remove if right clicked
-		if (rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
-			rightClickDown = false;
-			if (Board::elemSelected()) {
-				Board::deleteSelectedElem();
-				Board::deselectElem();
-			}
+		if (e.button.button == SDL_BUTTON_LEFT) {
+			pressedKeys &= ~KEY_MOUSE_LEFT;
+			releasedKeys |= KEY_MOUSE_LEFT;
+		} else if (e.button.button == SDL_BUTTON_RIGHT) {
+			pressedKeys &= ~KEY_MOUSE_RIGHT;
+			releasedKeys |= KEY_MOUSE_RIGHT;
+		} else if (e.button.button == SDL_BUTTON_MIDDLE) {
+			pressedKeys &= ~KEY_MOUSE_MIDDLE;
+			releasedKeys |= KEY_MOUSE_MIDDLE;
 		}
 		break;
 	}
@@ -74,8 +80,6 @@ void handleInput(const SDL_Event &e) {
 		if (!Board::isFocused()) {
 			break;
 		}
-		// Get element clicked regardless of mouse button
-		std::vector<DraggableElement*> clickMatches; // Every element that the cursor clicked on
 		if (!Board::elemSelected()) {
 			for (auto& d : *(Board::getDraggableElems())) {
 				if (!d->queuedForDeletion && SDL_PointInRectFloat(&mousePos, &d->box)) {
@@ -92,40 +96,20 @@ void handleInput(const SDL_Event &e) {
 				Board::getSelectedElem()->z = 0; // Move to front of z-index
 			}
 		}
-		if (!leftClickDown && e.button.button == SDL_BUTTON_LEFT) {
-			leftClickDown = true;
-			if (!Board::elemSelected()) {
-				if (!clickMatches.empty()) {
-					clickOffset.x = mousePos.x - Board::getSelectedElem()->box.x;
-					clickOffset.y = mousePos.y - Board::getSelectedElem()->box.y; // Get clicked point in element box relative to its boundary
-				} else {
-					// Check if circle around the add button is clicked
-					/*if (((mousePos.x-(addButton.box.x+32))*(mousePos.x-(addButton.box.x+32)) + (mousePos.y-(addButton.box.y+32))*(mousePos.y-(addButton.box.y+32))) < 32*32) {
-						addButton.addAnim(ANIM_SCALE, 1.25f, 0.1875f);
-						addButtonClicked = true;
-					}*/
-				}
-			} else {
-				clickOffset.x = mousePos.x - Board::getSelectedElem()->box.x;
-				clickOffset.y = mousePos.y - Board::getSelectedElem()->box.y; // Don't look for a new element to select if one is already selected
-			}
-			// Spawn new elements on double click
-			if (SDL_GetTicks() > leftClickTick && SDL_GetTicks() <= leftClickTick + 250) { // Double clicks have to be within 1/4 second of each other
-				if (!Board::elemSelected()) {
-					Board::spawnDraggable(mousePos.x, mousePos.y+40, Game::getElementNumId("air"));
-					Board::spawnDraggable(mousePos.x, mousePos.y-40, Game::getElementNumId("earth"));
-					Board::spawnDraggable(mousePos.x-40, mousePos.y, Game::getElementNumId("fire"));
-					Board::spawnDraggable( mousePos.x+40, mousePos.y, Game::getElementNumId("water"));
-				} else {
-					Board::spawnDraggable(mousePos.x, mousePos.y, Board::getSelectedElem()->id); // Duplicate element if it's double clicked
-					Board::deselectElem();
-				}
-			}
+		if (e.button.button == SDL_BUTTON_LEFT) {
+			releasedKeys &= ~KEY_MOUSE_LEFT;
+			pressedKeys |= KEY_MOUSE_LEFT;
 			leftClickTick = SDL_GetTicks(); // Get next click tick
+		} else if (e.button.button == SDL_BUTTON_RIGHT) {
+			releasedKeys &= ~KEY_MOUSE_RIGHT;
+			pressedKeys |= KEY_MOUSE_RIGHT;
+		} else if (e.button.button == SDL_BUTTON_MIDDLE) {
+			releasedKeys &= ~KEY_MOUSE_MIDDLE;
+			pressedKeys |= KEY_MOUSE_MIDDLE;
 		}
 
-		if (!rightClickDown && e.button.button == SDL_BUTTON_RIGHT) {
-			rightClickDown = true;
+		if (e.button.button == SDL_BUTTON_LEFT) {
+			
 		}
 		break;
 	}

@@ -32,7 +32,6 @@
 #include "Board.hpp"
 #include "Button.hpp"
 #include "ElementMenu.hpp"
-#include "Animation.hpp"
 #include "GraphicsContext.hpp"
 
 #define DEFAULT_WIDTH 800
@@ -133,6 +132,67 @@ int main(int argc, char* argv[]) {
 				break; // Close the program if X is clicked
 			}
 			handleInput(e);
+		}
+		if (keyPressed(KEY_MOUSE_LEFT)) {
+			SDL_Point clickOffset; // Point in the element box clicked relative to its boundary
+			// Get element clicked regardless of mouse button
+			std::vector<DraggableElement*> clickMatches; // Every element that the cursor clicked on
+			if (!Board::elemSelected()) {
+				if (!clickMatches.empty()) {
+					clickOffset.x = getMouseX() - Board::getSelectedElem()->box.x;
+					clickOffset.y = getMouseY() - Board::getSelectedElem()->box.y; // Get clicked point in element box relative to its boundary
+				} else {
+					// Check if circle around the add button is clicked
+					/*if (((mousePos.x-(addButton.box.x+32))*(mousePos.x-(addButton.box.x+32)) + (mousePos.y-(addButton.box.y+32))*(mousePos.y-(addButton.box.y+32))) < 32*32) {
+						addButton.addAnim(ANIM_SCALE, 1.25f, 0.1875f);
+						addButtonClicked = true;
+					}*/
+				}
+			} else {
+				clickOffset.x = getMouseX() - Board::getSelectedElem()->box.x;
+				clickOffset.y = getMouseY() - Board::getSelectedElem()->box.y; // Don't look for a new element to select if one is already selected
+			}
+			// Spawn new elements on double click
+			if (SDL_GetTicks() > getLastLeftClickTick() && SDL_GetTicks() <= getLastLeftClickTick() + 250) { // Double clicks have to be within 1/4 second of each other
+				if (!Board::elemSelected()) {
+					Board::spawnDraggable(getMouseX(), getMouseY()+40, Game::getElementNumId("air"));
+					Board::spawnDraggable(getMouseX(), getMouseY()-40, Game::getElementNumId("earth"));
+					Board::spawnDraggable(getMouseX()-40, getMouseY(), Game::getElementNumId("fire"));
+					Board::spawnDraggable(getMouseX()+40, getMouseY(), Game::getElementNumId("water"));
+				} else {
+					Board::spawnDraggable(getMouseX(), getMouseY(), Board::getSelectedElem()->id); // Duplicate element if it's double clicked
+					Board::deselectElem();
+				}
+			}
+		}
+
+		if (keyReleased(KEY_MOUSE_LEFT)) {
+			if (Board::elemSelected()) {
+				Board::getSelectedElem()->z++; // Move behind
+				Board::getSelectedElem()->makeCombo(); // See if combination was made with another element
+				if (!Board::getSelectedElem()->queuedForDeletion) {
+					if (Board::getSelectedElem()->box.x + Board::getSelectedElem()->box.w/2 >= GFX::getWindowWidth() ||
+					Board::getSelectedElem()->box.y + Board::getSelectedElem()->box.h/2 >= GFX::getWindowHeight()) {
+						Board::deleteSelectedElem(); // Delete element if it goes off-screen
+					}
+				}
+			} else {
+				// TODO: CODE THIS ELSEWHERE
+				/*if (addButtonClicked)  {
+					addButtonClicked = false;
+					addButton.addAnim(ANIM_SCALE, 1.0f, 0.1875f);
+					addButton.wasClicked = true;
+				}*/
+			}
+			Board::deselectElem(); // Release selected rectangle when left is released
+			Board::queueZSort();
+		}
+		// Remove if right clicked
+		if (keyPressed(KEY_MOUSE_RIGHT)) {
+			if (Board::elemSelected()) {
+				Board::deleteSelectedElem();
+				Board::deselectElem();
+			}
 		}
 
 		Board::updateElems();

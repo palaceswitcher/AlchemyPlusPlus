@@ -1,7 +1,6 @@
 #ifndef ANIMATION_HPP_
 #define ANIMATION_HPP_
 #include <SDL3/SDL.h>
-#include "Sprite.hpp"
 
 enum AnimationType {
 	ANIM_NONE,
