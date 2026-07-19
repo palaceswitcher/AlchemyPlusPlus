@@ -1,25 +1,37 @@
 #include "Input.hpp"
 #include "Board.hpp"
 #include "GraphicsContext.hpp"
-#include "GameHandler.hpp"
 #include <cmath>
 
 int pressedKeys = 0;
+int heldKeys = 0;
 int releasedKeys = 0;
 float mouseX = 0.0f;
 float mouseY = 0.0f;
+float mouseDeltaX = 0.0f; // Difference in mouse movement
+float mouseDeltaY = 0.0f;
 
 bool leftClickDown = false; // Left click state, used to track drag and drop
 bool rightClickDown = false; // Middle click state
 bool middleClickDown = false;
-long leftClickTick = 0; // The tick when left was clicked, used to detect double clicks
+
+long leftClickTick = 0;
+long rightClickTick = 0;
+long middleClickTick = 0;
+
+long prevLeftClickTick = 0;
+long prevRightClickTick = 0;
+long prevMiddleClickTick = 0;
 SDL_FPoint mousePos; // Mouse position
 
 bool keyPressed(int keys) {
-	return pressedKeys & keys != 0;
+	return (pressedKeys & keys) != 0;
+}
+bool keyHeld(int keys) {
+	return (heldKeys & keys) != 0;
 }
 bool keyReleased(int keys) {
-	return releasedKeys & keys != 0;
+	return (releasedKeys & keys) != 0;
 }
 
 float getMouseX() {
@@ -29,8 +41,28 @@ float getMouseY() {
 	return mouseY;
 }
 
-long getLastLeftClickTick() {
-	return leftClickTick;
+float getMouseDeltaX() {
+	return mouseDeltaX;
+}
+float getMouseDeltaY() {
+	return mouseDeltaY;
+}
+
+SDL_FPoint getMousePos() {
+	return mousePos;
+}
+
+long getPrevLeftClickTick() {
+	return prevLeftClickTick;
+}
+
+void flushInput() {
+	pressedKeys = 0;
+	prevLeftClickTick = leftClickTick;
+	prevRightClickTick = rightClickTick;
+	prevMiddleClickTick = middleClickTick; // There's probably a better way of doing this
+	mouseDeltaX = 0.0f;
+	mouseDeltaY = 0.0f;
 }
 
 void handleInput(const SDL_Event &e) {
@@ -50,66 +82,42 @@ void handleInput(const SDL_Event &e) {
 		break;
 	}
 	case SDL_EVENT_MOUSE_MOTION: {
+		mouseDeltaX = e.motion.xrel;
+		mouseDeltaY = e.motion.yrel;
 		mousePos = {e.motion.x, e.motion.y}; // Get mouse position
 		mouseX = e.motion.x;
 		mouseY = e.motion.y;
-		if (leftClickDown && Board::elemSelected()) {
-			Board::getSelectedElem()->box.x = roundf(mousePos.x - clickOffset.x);
-			Board::getSelectedElem()->box.y = roundf(mousePos.y - clickOffset.y); // Update rectangle position while its being dragged
-		}
 		break;
 	}
 	case SDL_EVENT_MOUSE_BUTTON_UP: {
-		if (!Board::isFocused()) {
-			break;
-		}
-
 		if (e.button.button == SDL_BUTTON_LEFT) {
-			pressedKeys &= ~KEY_MOUSE_LEFT;
+			heldKeys &= ~KEY_MOUSE_LEFT;
 			releasedKeys |= KEY_MOUSE_LEFT;
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
-			pressedKeys &= ~KEY_MOUSE_RIGHT;
+			heldKeys &= ~KEY_MOUSE_RIGHT;
 			releasedKeys |= KEY_MOUSE_RIGHT;
 		} else if (e.button.button == SDL_BUTTON_MIDDLE) {
-			pressedKeys &= ~KEY_MOUSE_MIDDLE;
+			heldKeys &= ~KEY_MOUSE_MIDDLE;
 			releasedKeys |= KEY_MOUSE_MIDDLE;
 		}
 		break;
 	}
 	case SDL_EVENT_MOUSE_BUTTON_DOWN: {
-		if (!Board::isFocused()) {
-			break;
-		}
-		if (!Board::elemSelected()) {
-			for (auto& d : *(Board::getDraggableElems())) {
-				if (!d->queuedForDeletion && SDL_PointInRectFloat(&mousePos, &d->box)) {
-					clickMatches.push_back(d.get());
-				}
-			}
-			if (!clickMatches.empty()) {
-				Board::queueZSort(); // Z-index will need to be resorted as this element will be moved to the front
-				std::stable_sort(clickMatches.begin(), clickMatches.end(), [](DraggableElement* d1, DraggableElement* d2) {
-					return d1->z > d2->z;
-				});
-
-				Board::selectElem(clickMatches.back()); // Select rectangle with highest Z-index
-				Board::getSelectedElem()->z = 0; // Move to front of z-index
-			}
-		}
 		if (e.button.button == SDL_BUTTON_LEFT) {
-			releasedKeys &= ~KEY_MOUSE_LEFT;
 			pressedKeys |= KEY_MOUSE_LEFT;
-			leftClickTick = SDL_GetTicks(); // Get next click tick
+			heldKeys |= KEY_MOUSE_LEFT;
+			releasedKeys &= ~KEY_MOUSE_LEFT;
+			leftClickTick = SDL_GetTicks();
 		} else if (e.button.button == SDL_BUTTON_RIGHT) {
-			releasedKeys &= ~KEY_MOUSE_RIGHT;
 			pressedKeys |= KEY_MOUSE_RIGHT;
+			heldKeys |= KEY_MOUSE_RIGHT;
+			releasedKeys &= ~KEY_MOUSE_RIGHT;
+			rightClickTick = SDL_GetTicks();
 		} else if (e.button.button == SDL_BUTTON_MIDDLE) {
-			releasedKeys &= ~KEY_MOUSE_MIDDLE;
 			pressedKeys |= KEY_MOUSE_MIDDLE;
-		}
-
-		if (e.button.button == SDL_BUTTON_LEFT) {
-			
+			heldKeys |= KEY_MOUSE_MIDDLE;
+			releasedKeys &= ~KEY_MOUSE_MIDDLE;
+			middleClickTick = SDL_GetTicks();
 		}
 		break;
 	}

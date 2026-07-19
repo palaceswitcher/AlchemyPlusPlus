@@ -19,13 +19,16 @@ void deselectElem();
 bool elemSelected();
 // Returns the currently selected element
 DraggableElement* getSelectedElem();
-// Selects the passed element
-void selectElem(DraggableElement* elem);
+// Selects an element at a specified position, returns true if an element exists at that position
+bool selectElem(SDL_FPoint mousePos);
 
 // Deletes an element
 void deleteElem(DraggableElement* elem);
 // Deletes the currently selected element
 void deleteSelectedElem();
+
+// Moves an element anchored to the cursor
+void moveElemCursor(DraggableElement* elem, float x, float y);
 
 // Signal that a z-sort is needed
 void queueZSort();

@@ -5,12 +5,13 @@
 #include <algorithm>
 #include <vector>
 #include <memory>
-#include <cmath>
 
 bool boardFocused = true; // Is the board focused?
 bool isDeleteQueued = false;
 bool zSortNeeded = false;
 std::vector<std::unique_ptr<DraggableElement>> draggableElems; // List of draggable elements on screen
+float selectedElemAnchorX;
+float selectedElemAnchorY;
 DraggableElement* selectedElem;
 
 void Board::deselectElem() {
@@ -22,8 +23,29 @@ bool Board::elemSelected() {
 DraggableElement* Board::getSelectedElem() {
 	return selectedElem;
 }
-void Board::selectElem(DraggableElement* elem) {
-	selectedElem = elem;
+bool Board::selectElem(SDL_FPoint mousePos) {
+	std::vector<DraggableElement*> clickMatches; // Every element that the cursor clicked on
+	if (!elemSelected()) {
+		for (auto& d : *(getDraggableElems())) {
+			if (!d->queuedForDeletion && SDL_PointInRectFloat(&mousePos, &d->box)) {
+				clickMatches.push_back(d.get());
+			}
+		}
+
+		if (!clickMatches.empty()) {
+			zSortNeeded = true;
+			std::stable_sort(clickMatches.begin(), clickMatches.end(), [](DraggableElement* d1, DraggableElement* d2) {
+				return d1->z > d2->z;
+			});
+
+			selectedElem = clickMatches.back();
+			selectedElem->z = 0;
+			selectedElemAnchorX = mousePos.x - selectedElem->box.x;
+			selectedElemAnchorY = mousePos.y - selectedElem->box.y;
+			return true;
+		}
+	}
+	return false;
 }
 
 void Board::deleteElem(DraggableElement* elem) {
@@ -33,6 +55,12 @@ void Board::deleteElem(DraggableElement* elem) {
 }
 void Board::deleteSelectedElem() {
 	deleteElem(selectedElem);
+	deselectElem();
+}
+
+void Board::moveElemCursor(DraggableElement* elem, float x, float y) {
+	Board::getSelectedElem()->box.x = x - selectedElemAnchorX;
+	Board::getSelectedElem()->box.y = y - selectedElemAnchorY;
 }
 
 void Board::queueZSort() {

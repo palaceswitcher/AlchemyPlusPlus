@@ -9,6 +9,10 @@ option(NATIVE_OPTIMIZE "Optimize for native CPU" OFF)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# clangd fucking sucks (get fucked microsoft)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+file(RENAME ${CMAKE_BINARY_DIR}/compile_commands.json ${CMAKE_SOURCE_DIR}/compile_commands.json)
+
 # Build settings
 if(BUILD_DEBUG)
 	set(CMAKE_BUILD_TYPE Debug)

@@ -10,16 +10,25 @@ enum InputFlags {
 
 // Returns currently pressed keys
 bool keyPressed(int keys);
-// Returns keys that were released
+// Returns currently held keys
+bool keyHeld(int keys);
+// Returns keys that were just released
 bool keyReleased(int keys);
 
 // Returns the tick of the last left click
-long getLastLeftClickTick();
+long getPrevLeftClickTick();
 
 // Return X position of mouse
 float getMouseX();
 // Return Y position of mouse
 float getMouseY();
+
+float getMouseDeltaX();
+float getMouseDeltaY();
+
+SDL_FPoint getMousePos();
+
+void flushInput();
 
 // Parses input
 void handleInput(const SDL_Event &event);

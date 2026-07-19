@@ -9,7 +9,6 @@
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include "imgui.h"
-#include "imgui_stdlib.h"
 #include "imgui_impl_sdl3.h"
 #include "imgui_impl_sdlrenderer3.h"
 #include "Rendering.hpp"
@@ -20,10 +19,8 @@
 #include <stdbool.h>
 #include <string>
 #include <vector>
-#include <map>
 #include <chrono>
 #include <memory>
-#include <unordered_map>
 #include <cmath>
 #include "Input.hpp"
 #include "Text.hpp"
@@ -116,6 +113,8 @@ int main(int argc, char* argv[]) {
 
 	auto endTick = Clock::now();
 	double deltaTime = 1.0/60;
+
+	SDL_Point clickOffset; // Point in the element box clicked relative to its boundary
 	// Game flags
 	bool addButtonClicked = false;
 	bool settingsButtonClicked = false;
@@ -133,42 +132,42 @@ int main(int argc, char* argv[]) {
 			}
 			handleInput(e);
 		}
-		if (keyPressed(KEY_MOUSE_LEFT)) {
-			SDL_Point clickOffset; // Point in the element box clicked relative to its boundary
-			// Get element clicked regardless of mouse button
-			std::vector<DraggableElement*> clickMatches; // Every element that the cursor clicked on
-			if (!Board::elemSelected()) {
-				if (!clickMatches.empty()) {
-					clickOffset.x = getMouseX() - Board::getSelectedElem()->box.x;
-					clickOffset.y = getMouseY() - Board::getSelectedElem()->box.y; // Get clicked point in element box relative to its boundary
-				} else {
-					// Check if circle around the add button is clicked
-					/*if (((mousePos.x-(addButton.box.x+32))*(mousePos.x-(addButton.box.x+32)) + (mousePos.y-(addButton.box.y+32))*(mousePos.y-(addButton.box.y+32))) < 32*32) {
-						addButton.addAnim(ANIM_SCALE, 1.25f, 0.1875f);
-						addButtonClicked = true;
-					}*/
-				}
-			} else {
-				clickOffset.x = getMouseX() - Board::getSelectedElem()->box.x;
-				clickOffset.y = getMouseY() - Board::getSelectedElem()->box.y; // Don't look for a new element to select if one is already selected
-			}
+		
+		if (keyPressed(KEY_MOUSE_LEFT) && Board::isFocused()) {
+			Board::selectElem(getMousePos());
+
 			// Spawn new elements on double click
-			if (SDL_GetTicks() > getLastLeftClickTick() && SDL_GetTicks() <= getLastLeftClickTick() + 250) { // Double clicks have to be within 1/4 second of each other
+			if (SDL_GetTicks() > getPrevLeftClickTick() && SDL_GetTicks() <= getPrevLeftClickTick() + 250) { // Double clicks have to be within 1/4 second of each other
+				float mouseX = getMouseX();
+				float mouseY = getMouseY();
+
 				if (!Board::elemSelected()) {
-					Board::spawnDraggable(getMouseX(), getMouseY()+40, Game::getElementNumId("air"));
-					Board::spawnDraggable(getMouseX(), getMouseY()-40, Game::getElementNumId("earth"));
-					Board::spawnDraggable(getMouseX()-40, getMouseY(), Game::getElementNumId("fire"));
-					Board::spawnDraggable(getMouseX()+40, getMouseY(), Game::getElementNumId("water"));
+					Board::spawnDraggable(mouseX, mouseY+40, Game::getElementNumId("air"));
+					Board::spawnDraggable(mouseX, mouseY-40, Game::getElementNumId("earth"));
+					Board::spawnDraggable(mouseX-40, mouseY, Game::getElementNumId("fire"));
+					Board::spawnDraggable(mouseX+40, mouseY, Game::getElementNumId("water"));
 				} else {
-					Board::spawnDraggable(getMouseX(), getMouseY(), Board::getSelectedElem()->id); // Duplicate element if it's double clicked
+					Board::spawnDraggable(mouseX, mouseY, Board::getSelectedElem()->id); // Duplicate element if it's double clicked
 					Board::deselectElem();
 				}
 			}
 		}
-
-		if (keyReleased(KEY_MOUSE_LEFT)) {
+		if (keyHeld(KEY_MOUSE_LEFT)) {
+			if (Board::elemSelected()) {
+				Board::moveElemCursor(Board::getSelectedElem(), getMouseX(), getMouseY());
+			} else {
+				// Check if circle around the add button is clicked
+				float mousePosX = getMouseX();
+				float mousePosY = getMouseY();
+				if (((mousePosX-(addButton.box.x+32))*(mousePosX-(addButton.box.x+32)) + (mousePosY-(addButton.box.y+32))*(mousePosY-(addButton.box.y+32))) < 32*32) {
+					addButton.addAnim(ANIM_SCALE, 1.25f, 0.1875f);
+					addButtonClicked = true;
+				}
+			}
+		} else if (keyReleased(KEY_MOUSE_LEFT)) {
 			if (Board::elemSelected()) {
 				Board::getSelectedElem()->z++; // Move behind
+
 				Board::getSelectedElem()->makeCombo(); // See if combination was made with another element
 				if (!Board::getSelectedElem()->queuedForDeletion) {
 					if (Board::getSelectedElem()->box.x + Board::getSelectedElem()->box.w/2 >= GFX::getWindowWidth() ||
@@ -177,21 +176,19 @@ int main(int argc, char* argv[]) {
 					}
 				}
 			} else {
-				// TODO: CODE THIS ELSEWHERE
-				/*if (addButtonClicked)  {
+				if (addButtonClicked) {
 					addButtonClicked = false;
 					addButton.addAnim(ANIM_SCALE, 1.0f, 0.1875f);
 					addButton.wasClicked = true;
-				}*/
+				}
 			}
-			Board::deselectElem(); // Release selected rectangle when left is released
+			Board::deselectElem();
 			Board::queueZSort();
 		}
-		// Remove if right clicked
-		if (keyPressed(KEY_MOUSE_RIGHT)) {
-			if (Board::elemSelected()) {
+
+		if (keyPressed(KEY_MOUSE_RIGHT) && Board::isFocused()) {
+			if (Board::selectElem(getMousePos())) {
 				Board::deleteSelectedElem();
-				Board::deselectElem();
 			}
 		}
 
@@ -257,6 +254,8 @@ int main(int argc, char* argv[]) {
 		ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), GFX::renderer);
 		SDL_RenderPresent(GFX::renderer);
 		SDL_RenderClear(GFX::renderer);
+
+		flushInput();
 
 		endTick = Clock::now();
 		deltaTime = std::chrono::duration_cast<std::chrono::microseconds>(endTick - startTick).count() / 1000.0; // Get the time the frame took in ms
